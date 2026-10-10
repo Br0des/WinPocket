@@ -72,7 +72,27 @@ jobs:
           key: winpocket-qemu-ios-arm64-${{ runner.os }}-xcode-${{ steps.xcode.outputs.version }}-${{ hashFiles('patches/sources', 'scripts/build_dependencies.sh', 'scripts/fixup.sh', 'patches/**/*.patch', 'patches/data/**') }}
 
       - name: Build iOS app
-        run: ./scripts/build_utm.sh -k iphoneos -s iOS -a arm64 -o build/WinPocket
+        run: |
+          set -o pipefail
+          mkdir -p build
+          ./scripts/build_utm.sh -k iphoneos -s iOS -a arm64 -o build/WinPocket 2>&1 | tee build/ios-build.log
+
+      - name: Publish Xcode errors as annotations
+        if: failure()
+        run: |
+          if [ -f build/ios-build.log ]; then
+            errors="$(grep -E 'error:|fatal error:|BUILD FAILED' build/ios-build.log | tail -n 30 || true)"
+            if [ -n "$errors" ]; then
+              while IFS= read -r line; do
+                line="${line//'%'/'%25'}"
+                line="${line//$'\r'/'%0D'}"
+                line="${line//$'\n'/'%0A'}"
+                echo "::error::$line"
+              done <<< "$errors"
+            else
+              echo "::error::Xcode failed without a compiler error line. See the build step log for the failing command."
+            fi
+          fi
 
       - name: Package unsigned IPA
         run: ./scripts/package.sh ipa build/WinPocket.xcarchive build/ipa
