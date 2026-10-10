@@ -1,78 +1,27 @@
-#  UTM
-[![Build](https://github.com/utmapp/UTM/actions/workflows/build.yml/badge.svg?branch=main&event=push)][1]
+# WinPocket
 
-> It is possible to invent a single machine which can be used to compute any computable sequence.
+[iOS build workflow](.github/workflows/winpocket-ios.yml)
 
--- <cite>Alan Turing, 1936</cite>
+WinPocket is an iPhone and iPad app for installing Windows in a QEMU virtual machine. It is an independent community fork of [UTM](https://github.com/utmapp/UTM), built with UTM's iOS frontend and QEMU runtime. It is not an official UTM release.
 
-UTM is a full featured system emulator and virtual machine host for iOS and macOS. It is based off of QEMU. In short, it allows you to run Windows, Linux, and more on your Mac, iPhone, and iPad. More information at https://getutm.app/ and https://mac.getutm.app/
+## Start a Windows VM
 
-<p align="center">
-  <img width="450px" alt="UTM running on an iPhone" src="screen.png">
-  <br>
-  <img width="450px" alt="UTM running on a MacBook" src="screenmac.png">
-</p>
+1. Install WinPocket using the unsigned IPA from the iOS build workflow and a development signing method such as AltStore or SideStore. The signature must preserve `get-task-allow` for JIT.
+2. Open WinPocket and choose **Create a New Virtual Machine** → **Emulate** → **Windows**.
+3. Turn on **Install Windows 10 or higher**, then choose **Boot ISO Image** and import your Windows installer ISO from Files. The Windows hardware preset uses ARM64; choose the x86-64 PC preset if your ISO is marked x64 or AMD64.
+4. The Windows preset starts with a 64 GB virtual disk and 2 GB RAM on iOS. Increase RAM to 4 GB if your device has room. Keep the installer ISO mounted for first boot, then complete Windows Setup.
+5. Shut down the guest when Setup finishes. Eject the ISO or set the virtual disk first in the boot order, then start the VM again.
 
-## Features
+Enable JIT for WinPocket in StikDebug on iOS versions supported by both apps. StikDebug requires a pairing file and LocalDevVPN setup on supported releases. iOS 26+ has extra JIT requirements; consult the current [StikDebug](https://github.com/StikDebug/StikDebug) and [StikJIT](https://github.com/StikDebug/StikJIT/blob/main/INTEGRATION.md) notes. QEMU uses CPU emulation on stock iOS because Apple does not expose Hypervisor.framework to ordinary iOS apps. JIT improves emulation speed, but Windows will not run at native speed.
 
-* Full system emulation (MMU, devices, etc) using QEMU
-* 30+ processors supported including x86_64, ARM64, and RISC-V
-* VGA graphics mode using SPICE and QXL
-* Text terminal mode
-* USB devices
-* JIT based acceleration using QEMU TCG
-* Frontend designed from scratch for macOS 11 and iOS 11+ using the latest and greatest APIs
-* Create, manage, run VMs directly from your device
+Windows installer media and licenses are not included. Obtain them from Microsoft or another authorized source.
 
-## Additional macOS Features
+## Build
 
-* Hardware accelerated virtualization using Hypervisor.framework and QEMU
-* Boot macOS guests with Virtualization.framework on macOS 12+
+The [GitHub Actions workflow](.github/workflows/winpocket-ios.yml) builds QEMU and the app on a macOS runner, packages an unsigned IPA, and stores it as a workflow artifact. Building the QEMU dependencies from source takes time. To build locally, follow the dependency and signing steps in [UTM's iOS development guide](Documentation/iOSDevelopment.md), then open `UTM.xcodeproj` and select the `iOS` scheme. Set your Apple Developer Team and a unique `PRODUCT_BUNDLE_PREFIX` in `CodeSigning.xcconfig`.
 
-## UTM SE
+Free Apple developer signing expires after seven days and must be refreshed. A Windows ISO and a compatible iPhone/iPad are required to verify a full guest boot; this Windows development host has no Xcode or iOS device attached.
 
-UTM/QEMU requires dynamic code generation (JIT) for maximum performance. JIT on iOS devices require either a jailbroken device, or one of the various workarounds found for specific versions of iOS (see "Install" for more details).
+## Licenses
 
-UTM SE ("slow edition") uses a [threaded interpreter][3] which performs better than a traditional interpreter but still slower than JIT. This technique is similar to what [iSH][4] does for dynamic execution. As a result, UTM SE does not require jailbreaking or any JIT workarounds and can be sideloaded as a regular app.
-
-To optimize for size and build times, only the following architectures are included in UTM SE: ARM, PPC, RISC-V, and x86 (all with both 32-bit and 64-bit variants).
-
-## Install
-
-UTM (SE) for iOS: https://getutm.app/install/
-
-UTM is also available for macOS: https://mac.getutm.app/
-
-## Development
-
-### [macOS Development](Documentation/MacDevelopment.md)
-
-### [iOS Development](Documentation/iOSDevelopment.md)
-
-## Related
-
-* [iSH][4]: emulates a usermode Linux terminal interface for running x86 Linux applications on iOS
-* [a-shell][5]: packages common Unix commands and utilities built natively for iOS and accessible through a terminal interface
-
-## License
-
-UTM is distributed under the permissive Apache 2.0 license. However, it uses several (L)GPL components. Most are dynamically linked but the gstreamer plugins are statically linked and parts of the code are taken from qemu. Please be aware of this if you intend on redistributing this application.
-
-Some icons made by [Freepik](https://www.freepik.com) from [www.flaticon.com](https://www.flaticon.com/).
-
-Additionally, UTM frontend depends on the following MIT/BSD License components:
-
-* [IQKeyboardManager](https://github.com/hackiftekhar/IQKeyboardManager)
-* [SwiftTerm](https://github.com/migueldeicaza/SwiftTerm)
-* [ZIP Foundation](https://github.com/weichsel/ZIPFoundation)
-* [InAppSettingsKit](https://github.com/futuretap/InAppSettingsKit)
-
-Continuous integration hosting is provided by [MacStadium](https://macstadium.com/company/opensource)
-
-[<img src="https://uploads-ssl.webflow.com/5ac3c046c82724970fc60918/5c019d917bba312af7553b49_MacStadium-developerlogo.png" alt="MacStadium logo" width="250">](https://www.macstadium.com)
-
-  [1]: https://github.com/utmapp/UTM/actions?query=event%3Arelease+workflow%3ABuild
-  [2]: screen.png
-  [3]: https://github.com/ktemkin/qemu/blob/with_tcti/tcg/aarch64-tcti/README.md
-  [4]: https://github.com/ish-app/ish
-  [5]: https://github.com/holzschu/a-shell
+WinPocket retains UTM's Apache 2.0 license and source notices. The project also includes QEMU and other components under their respective licenses; see the retained [`LICENSE`](LICENSE) and upstream [license notes](https://github.com/utmapp/UTM#license). This source-only repository does not bundle compiled emulator binaries, Windows, or firmware images.

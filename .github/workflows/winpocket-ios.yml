@@ -1,0 +1,47 @@
+name: WinPocket iOS
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-ios:
+    runs-on: macos-26
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Install build tools
+        run: |
+          brew install bison pkg-config gettext glib-utils libgpg-error nasm make meson cmake
+          brew install llvm spirv-llvm-translator libxcb libxrandr ldid
+          pip3 install --break-system-packages --user six pyparsing pyyaml setuptools distlib mako
+
+      - name: Build iOS QEMU dependencies
+        run: ./scripts/build_dependencies.sh -p ios -a arm64
+        env:
+          NCPU: 3
+
+      - name: Build iOS app
+        run: ./scripts/build_utm.sh -k iphoneos -s iOS -a arm64 -o build/WinPocket
+
+      - name: Package unsigned IPA
+        run: ./scripts/package.sh ipa build/WinPocket.xcarchive build/ipa
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: WinPocket-unsigned-IPA
+          path: build/ipa/UTM.ipa
+          if-no-files-found: error
+          retention-days: 14

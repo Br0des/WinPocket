@@ -27,7 +27,7 @@ let productName = "UTM SE"
 #elseif WITH_REMOTE && !os(visionOS)
 let productName = "UTM Remote"
 #else
-let productName = "UTM"
+let productName = "WinPocket"
 #endif
 
 struct ContentView: View {

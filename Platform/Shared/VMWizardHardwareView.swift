@@ -106,6 +106,17 @@ struct VMWizardHardwareView: View {
             }
         }
 
+        func defaultRam(for os: VMWizardOS) -> Int {
+            guard os == .Windows else {
+                return defaultRam
+            }
+            #if os(macOS)
+            return max(defaultRam, 4096)
+            #else
+            return max(defaultRam, 2048)
+            #endif
+        }
+
         var defaultStorageGiB: Int {
             switch self {
             case .quadra800, .powerMacG4: return 2
@@ -116,6 +127,10 @@ struct VMWizardHardwareView: View {
             default: return 2
             #endif
             }
+        }
+
+        func defaultStorageGiB(for os: VMWizardOS) -> Int {
+            os == .Windows ? max(defaultStorageGiB, 64) : defaultStorageGiB
         }
 
         var maxSupportedCores: Int {
@@ -147,7 +162,7 @@ struct VMWizardHardwareView: View {
             case .Other: return .q35
             case .macOS: return .arm64Virt
             case .Linux: return .q35
-            case .Windows: return .q35
+            case .Windows: return .arm64Virt
             case .ClassicMacOS: return .powerMacG4
             }
         }
@@ -222,9 +237,9 @@ struct VMWizardHardwareView: View {
                     }
                     wizardState.systemArchitecture = newValue.architecture
                     wizardState.systemTarget = newValue.target
-                    wizardState.systemMemoryMib = newValue.defaultRam
+                    wizardState.systemMemoryMib = newValue.defaultRam(for: wizardState.operatingSystem)
                     wizardState.systemCpuCount = newValue.maxSupportedCores
-                    wizardState.storageSizeGib = newValue.defaultStorageGiB
+                    wizardState.storageSizeGib = newValue.defaultStorageGiB(for: wizardState.operatingSystem)
                     wizardState.legacyHardware = newValue.isLegacyHardware
                 }
             }
@@ -310,9 +325,9 @@ struct VMWizardHardwareView: View {
                 selectedMachine = SupportedMachine.default(for: wizardState.operatingSystem)
                 wizardState.systemArchitecture = selectedMachine!.architecture
                 wizardState.systemTarget = selectedMachine!.target
-                wizardState.systemMemoryMib = selectedMachine!.defaultRam
+                wizardState.systemMemoryMib = selectedMachine!.defaultRam(for: wizardState.operatingSystem)
                 wizardState.systemCpuCount = selectedMachine!.maxSupportedCores
-                wizardState.storageSizeGib = selectedMachine!.defaultStorageGiB
+                wizardState.storageSizeGib = selectedMachine!.defaultStorageGiB(for: wizardState.operatingSystem)
                 wizardState.legacyHardware = selectedMachine!.isLegacyHardware
             }
         }

@@ -71,7 +71,7 @@ fileprivate struct VMPlaceholderViewNew: View {
 fileprivate struct Title: View {
     var body: some View {
         HStack {
-            Text("Welcome to UTM").font(.title)
+            Text("Welcome to WinPocket").font(.title)
         }
     }
 }

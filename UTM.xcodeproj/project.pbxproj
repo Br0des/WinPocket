@@ -5254,6 +5254,7 @@
 					"$(inherited)",
 				);
 				INFOPLIST_FILE = Platform/iOS/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = WinPocket;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -5293,6 +5294,7 @@
 					"$(inherited)",
 				);
 				INFOPLIST_FILE = Platform/iOS/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = WinPocket;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",

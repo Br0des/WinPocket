@@ -37,7 +37,7 @@ BUNDLE_ID=
 case $MODE in
 deb | ipa | ipa-hv | ipa-signed )
 	NAME="UTM"
-	BUNDLE_ID="com.utmapp.UTM"
+	BUNDLE_ID="dev.winpocket.UTM"
 	INPUT_APP="$INPUT/Products/Applications/UTM.app"
 	;;
 ipa-se | ipa-se-signed )

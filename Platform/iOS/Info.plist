@@ -10,7 +10,7 @@
 	<array>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>UTM virtual machine</string>
+			<string>WinPocket virtual machine</string>
 			<key>LSHandlerRank</key>
 			<string>Owner</string>
 			<key>LSItemContentTypes</key>
@@ -64,13 +64,13 @@
 		<string>_altserver._tcp</string>
 	</array>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>The virtual machine may access the local network. UTM may also use the network to communicate with local servers.</string>
+	<string>The virtual machine may access the local network. WinPocket may also use the network to communicate with local servers.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>UTM requests location data periodically to ensure the system keeps the background process active. Location data will never leave the device.</string>
+	<string>WinPocket requests location data periodically to ensure the system keeps the background process active. Location data will never leave the device.</string>
 	<key>NSLocationAlwaysUsageDescription</key>
-	<string>UTM requests location data periodically to ensure the system keeps the background process active. Location data will never leave the device.</string>
+	<string>WinPocket requests location data periodically to ensure the system keeps the background process active. Location data will never leave the device.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>UTM requests location data periodically to ensure the system keeps the background process active. Location data will never leave the device.</string>
+	<string>WinPocket requests location data periodically to ensure the system keeps the background process active. Location data will never leave the device.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Permission is required for any virtual machine to record from the microphone.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>

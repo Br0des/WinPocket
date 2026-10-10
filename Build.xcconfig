@@ -19,6 +19,7 @@
 
 MARKETING_VERSION = 5.0.6
 CURRENT_PROJECT_VERSION = 126
+PRODUCT_BUNDLE_PREFIX = dev.winpocket
 
 // Codesigning settings defined optionally, see Documentation/iOSDevelopment.md
 #include? "CodeSigning.xcconfig"
