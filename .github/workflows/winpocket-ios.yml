@@ -27,6 +27,9 @@ jobs:
           brew install llvm spirv-llvm-translator libxcb libxrandr ldid
           pip3 install --break-system-packages --user six pyparsing pyyaml setuptools distlib mako
 
+      - name: Add Homebrew Bison to PATH
+        run: echo "$(brew --prefix bison)/bin" >> "$GITHUB_PATH"
+
       - name: Build iOS QEMU dependencies
         run: ./scripts/build_dependencies.sh -p ios -a arm64
         env:
