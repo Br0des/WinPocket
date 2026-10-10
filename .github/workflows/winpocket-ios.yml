@@ -3,11 +3,27 @@ name: WinPocket iOS
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - 'website/**'
+      - 'Documentation/**'
+      - '**.md'
+      - 'LICENSE'
+      - '.github/workflows/pages.yml'
   pull_request:
+    paths-ignore:
+      - 'website/**'
+      - 'Documentation/**'
+      - '**.md'
+      - 'LICENSE'
+      - '.github/workflows/pages.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
+
+concurrency:
+  group: winpocket-ios-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build-ios:
@@ -19,21 +35,41 @@ jobs:
           submodules: recursive
 
       - name: Show Xcode version
-        run: xcodebuild -version
+        id: xcode
+        run: |
+          xcode_version="$(xcodebuild -version | sed -n 's/^Xcode //p')"
+          echo "version=$xcode_version" >> "$GITHUB_OUTPUT"
+          xcodebuild -version
 
       - name: Install build tools
         run: |
-          brew install bison pkg-config gettext glib-utils libgpg-error nasm make meson cmake
-          brew install llvm spirv-llvm-translator libxcb libxrandr ldid
+          brew install bison pkg-config gettext glib-utils libgpg-error nasm make meson cmake llvm spirv-llvm-translator spirv-tools libxcb libxrandr ldid
           pip3 install --break-system-packages --user six pyparsing pyyaml setuptools distlib mako
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: 1
 
       - name: Add Homebrew Bison to PATH
         run: echo "$(brew --prefix bison)/bin" >> "$GITHUB_PATH"
 
+      - name: Restore QEMU dependency cache
+        id: qemu-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: sysroot-iOS-arm64
+          key: winpocket-qemu-ios-arm64-${{ runner.os }}-xcode-${{ steps.xcode.outputs.version }}-${{ hashFiles('patches/sources', 'scripts/build_dependencies.sh', 'scripts/fixup.sh', 'patches/**/*.patch', 'patches/data/**') }}
+
       - name: Build iOS QEMU dependencies
+        if: steps.qemu-cache.outputs.cache-hit != 'true'
         run: ./scripts/build_dependencies.sh -p ios -a arm64
         env:
           NCPU: 3
+
+      - name: Save QEMU dependency cache
+        if: success() && steps.qemu-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: sysroot-iOS-arm64
+          key: winpocket-qemu-ios-arm64-${{ runner.os }}-xcode-${{ steps.xcode.outputs.version }}-${{ hashFiles('patches/sources', 'scripts/build_dependencies.sh', 'scripts/fixup.sh', 'patches/**/*.patch', 'patches/data/**') }}
 
       - name: Build iOS app
         run: ./scripts/build_utm.sh -k iphoneos -s iOS -a arm64 -o build/WinPocket
