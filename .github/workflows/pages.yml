@@ -29,7 +29,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Configure Pages
-        uses: actions/configure-pages@v5`r`n        with:`r`n          enablement: true
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
       - name: Upload website
         uses: actions/upload-pages-artifact@v3
         with:
