@@ -152,7 +152,7 @@ struct VMWizardStartView: View {
         .onAppear {
             jitAvailable = Main.jitAvailable
         }
-        .onChange(of: scenePhase) { _, phase in
+        .onChange(of: scenePhase) { phase in
             #if os(iOS) && WITH_JIT
             guard phase == .active, waitingForStikDebug else {
                 return

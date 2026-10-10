@@ -250,7 +250,8 @@ private final class WindowsISODownloadState: NSObject, ObservableObject, WKNavig
             decisionHandler(.allow, preferences)
             return
         }
-        preferences.shouldPerformDownload = true
+        // WKWebpagePreferences has no download opt-in; returning .download is what
+        // turns this navigation into a download.
         decisionHandler(.download, preferences)
     }
 
