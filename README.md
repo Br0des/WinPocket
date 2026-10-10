@@ -8,11 +8,11 @@ WinPocket is an iPhone and iPad app for installing Windows in a QEMU virtual mac
 
 1. Install WinPocket using the unsigned IPA from the iOS build workflow and a development signing method such as AltStore or SideStore. The signature must preserve `get-task-allow` for JIT.
 2. Open WinPocket and choose **Create a New Virtual Machine** → **Emulate** → **Windows**.
-3. Turn on **Install Windows 10 or higher**, then choose **Boot ISO Image** and import your Windows installer ISO from Files. The Windows hardware preset uses ARM64; choose the x86-64 PC preset if your ISO is marked x64 or AMD64.
-4. The Windows preset starts with a 64 GB virtual disk and 2 GB RAM on iOS. Increase RAM to 4 GB if your device has room. Keep the installer ISO mounted for first boot, then complete Windows Setup.
+3. Download the official [Windows 11 Arm64 ISO from Microsoft](https://www.microsoft.com/software-download/windows11arm64). In WinPocket, turn on **Install Windows 10 or higher**, choose **Boot ISO Image**, and import that ISO from Files. Its ARM64 guest matches the iPhone/iPad CPU family; an x64/AMD64 ISO forces much slower cross-architecture emulation.
+4. Keep the 64 GB virtual disk. The iOS preset starts with 2 GB RAM to reduce the chance iOS kills the app. If your device has enough free memory, raise guest RAM to 4 GB in the hardware settings before creating the VM. Keep the ISO mounted for first boot, then complete Windows Setup.
 5. Shut down the guest when Setup finishes. Eject the ISO or set the virtual disk first in the boot order, then start the VM again.
 
-Enable JIT for WinPocket in StikDebug on iOS versions supported by both apps. StikDebug requires a pairing file and LocalDevVPN setup on supported releases. iOS 26+ has extra JIT requirements; consult the current [StikDebug](https://github.com/StikDebug/StikDebug) and [StikJIT](https://github.com/StikDebug/StikJIT/blob/main/INTEGRATION.md) notes. QEMU uses CPU emulation on stock iOS because Apple does not expose Hypervisor.framework to ordinary iOS apps. JIT improves emulation speed, but Windows will not run at native speed.
+For the best speed, use the ARM64 ISO, enable JIT for WinPocket in StikDebug, and close other memory-heavy apps before starting the VM. Install Windows and its VirtIO/SPICE guest tools on the virtual disk, then eject the ISO for later boots. StikDebug requires a pairing file and LocalDevVPN setup on supported releases. iOS 26+ has extra JIT requirements; consult the current [StikDebug](https://github.com/StikDebug/StikDebug) and [StikJIT](https://github.com/StikDebug/StikJIT/blob/main/INTEGRATION.md) notes. QEMU still emulates the CPU on iOS because Apple does not expose Hypervisor.framework to ordinary iOS apps, so even with JIT and an ARM64 guest Windows will run far below native speed.
 
 Windows installer media and licenses are not included. Obtain them from Microsoft or another authorized source.
 
