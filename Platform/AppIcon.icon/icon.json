@@ -1,20 +1,66 @@
 {
-  "fill-specializations": [
-    { "value": "#000000" },
-    { "appearance": "dark", "value": "#000000" }
-  ],
-  "groups": [
+  "fill-specializations" : [
     {
-      "blend-mode": "normal",
-      "blur-material": null,
-      "hidden": false,
-      "layers": [
-        { "image-name": "WinPocket.svg", "name": "Windows", "opacity": 1 }
-      ]
+      "value" : {
+        "solid" : "srgb:0.00000,0.00000,0.00000,1.00000"
+      }
+    },
+    {
+      "appearance" : "dark",
+      "value" : {
+        "solid" : "srgb:0.00000,0.00000,0.00000,1.00000"
+      }
     }
   ],
-  "supported-platforms": {
-    "circles": ["watchOS"],
-    "squares": "shared"
+  "groups" : [
+    {
+      "blend-mode" : "normal",
+      "blur-material" : null,
+      "hidden" : false,
+      "layers" : [
+        {
+          "fill-specializations" : [
+            {
+              "value" : {
+                "solid" : "srgb:0.14902,0.60784,1.00000,1.00000"
+              }
+            },
+            {
+              "appearance" : "dark",
+              "value" : {
+                "solid" : "srgb:0.14902,0.60784,1.00000,1.00000"
+              }
+            }
+          ],
+          "image-name" : "WinPocket.svg",
+          "name" : "Windows",
+          "opacity" : 1
+        }
+      ],
+      "lighting" : "individual",
+      "opacity" : 1,
+      "position" : {
+        "scale" : 1,
+        "translation-in-points" : [
+          0,
+          0
+        ]
+      },
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "specular" : true,
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.5
+      }
+    }
+  ],
+  "supported-platforms" : {
+    "circles" : [
+      "watchOS"
+    ],
+    "squares" : "shared"
   }
 }
