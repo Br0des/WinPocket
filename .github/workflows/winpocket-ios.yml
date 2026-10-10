@@ -27,7 +27,10 @@ concurrency:
 
 jobs:
   build-ios:
-    runs-on: macos-26
+    # The UTM sources use iOS 27 APIs (scene accessories, dismissalConfirmationDialog),
+    # so they need the iOS 27 SDK. Xcode 27 is only on the xcode-27 preview image;
+    # macos-26 ships Xcode 26.x, which cannot compile them.
+    runs-on: xcode-27
     steps:
       - name: Check out source
         uses: actions/checkout@v4
