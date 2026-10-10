@@ -15,12 +15,25 @@
 //
 
 import SwiftUI
+#if os(iOS)
+import Darwin
+#endif
 #if canImport(Virtualization)
 import Virtualization
 #endif
 
 struct VMWizardStartView: View {
     @ObservedObject var wizardState: VMWizardState
+    @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.openURL) private var openURL
+    @State private var jitAvailable = Main.jitAvailable
+    @State private var waitingForStikDebug = false
+    @State private var showJitAlert = false
+    @State private var jitAlertMessage = ""
+
+    private var isJitAvailable: Bool {
+        jitAvailable || Main.jitAvailable
+    }
     
     var isVirtualizationSupported: Bool {
         #if os(macOS)
@@ -34,7 +47,7 @@ struct VMWizardStartView: View {
         #if !WITH_JIT
         true
         #else
-        Main.jitAvailable
+        isJitAvailable
         #endif
     }
     
@@ -85,13 +98,32 @@ struct VMWizardStartView: View {
                 Text("Custom")
             } footer: {
                 if !isEmulationSupported && !isVirtualizationSupported {
-                    Text("Your version of iOS does not support running VMs while unmodified. You must either run UTM while jailbroken or with a remote debugger attached. See https://getutm.app/install/ for more details.")
+                    Text("Enable JIT with StikDebug above to use CPU emulation.")
                 } else if !isVirtualizationSupported {
                     Text("Virtualization is not supported on your system.")
                 } else if !isEmulationSupported {
                     Text("This build does not emulation.")
                 }
             }
+            #if os(iOS) && WITH_JIT
+            Section {
+                if isJitAvailable {
+                    Label("JIT is enabled for WinPocket", systemImage: "checkmark.circle.fill")
+                        .foregroundStyle(.green)
+                } else {
+                    Button {
+                        requestJITWithStikDebug()
+                    } label: {
+                        Label("Enable JIT with StikDebug", systemImage: "bolt.fill")
+                    }
+                    Text("WinPocket will ask StikDebug to attach to this app, then return here. StikDebug, Developer Mode, and its pairing setup are required.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            } header: {
+                Text("Emulation speed")
+            }
+            #endif
             Section {
                 Button {
                     NotificationCenter.default.post(name: NSNotification.OpenVirtualMachine, object: nil)
@@ -105,9 +137,9 @@ struct VMWizardStartView: View {
                 #if os(macOS)
                 .buttonStyle(.link)
                 #endif
-                Link(destination: URL(string: "https://mac.getutm.app/gallery/")!) {
+                Link(destination: URL(string: "https://www.microsoft.com/en-us/software-download/windows11arm64")!) {
                     Label {
-                        Text("Download prebuilt from UTM Gallery…")
+                        Text("Download Windows 11 ARM ISO…")
                     } icon: {
                         Image(systemName: "arrow.down.doc")
                     }
@@ -117,7 +149,71 @@ struct VMWizardStartView: View {
             }
 
         }
+        .onAppear {
+            jitAvailable = Main.jitAvailable
+        }
+        .onChange(of: scenePhase) { _, phase in
+            #if os(iOS) && WITH_JIT
+            guard phase == .active, waitingForStikDebug else {
+                return
+            }
+            waitingForStikDebug = false
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                refreshJITStatus()
+            }
+            #endif
+        }
+        .alert("JIT status", isPresented: $showJitAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(jitAlertMessage)
+        }
     }
+
+    #if os(iOS) && WITH_JIT
+    private func requestJITWithStikDebug() {
+        guard let bundleID = Bundle.main.bundleIdentifier else {
+            jitAlertMessage = "WinPocket could not determine its app identifier."
+            showJitAlert = true
+            return
+        }
+
+        var components = URLComponents()
+        components.scheme = "stikdebug"
+        components.host = "enable-jit"
+        components.queryItems = [
+            URLQueryItem(name: "bundle-id", value: bundleID),
+            URLQueryItem(name: "pid", value: String(getpid()))
+        ]
+
+        guard let url = components.url else {
+            jitAlertMessage = "WinPocket could not create the StikDebug request."
+            showJitAlert = true
+            return
+        }
+
+        openURL(url) { accepted in
+            if accepted {
+                waitingForStikDebug = true
+            } else {
+                jitAlertMessage = "StikDebug did not open. Install StikDebug, finish its pairing setup, then try again."
+                showJitAlert = true
+            }
+        }
+    }
+
+    private func refreshJITStatus() {
+        guard jb_has_jit_entitlement() || jb_has_cs_disabled() else {
+            Main.jitAvailable = false
+            jitAvailable = false
+            jitAlertMessage = "StikDebug returned, but WinPocket could not confirm JIT access. Check Developer Mode, pairing, and StikDebug's JIT status."
+            showJitAlert = true
+            return
+        }
+        Main.jitAvailable = true
+        jitAvailable = true
+    }
+    #endif
     
     private func processIsTranslated() -> Bool {
         let key = "sysctl.proc_translated"

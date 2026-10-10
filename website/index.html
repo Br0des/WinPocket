@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#000000">
+  <meta name="description" content="WinPocket runs Windows ARM virtual machines on iPhone and iPad with QEMU.">
+  <title>WinPocket — Windows on iPhone</title>
+  <link rel="icon" type="image/png" href="assets/winpocket-icon.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="nav wrap" id="top">
+    <a class="brand" href="#top"><img src="assets/winpocket-icon.png" width="30" height="30" alt=""><span>WinPocket</span></a>
+    <a class="nav-link" href="https://github.com/Br0des/WinPocket">GitHub <span aria-hidden="true">↗</span></a>
+  </header>
+  <main>
+    <section class="hero wrap">
+      <div class="windows-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+      <p class="eyebrow">A Windows virtual machine for iPhone &amp; iPad</p>
+      <h1>Your PC.<br><span>In your pocket.</span></h1>
+      <p class="intro">Create a QEMU virtual machine, import a Windows ARM installer, and get started.</p>
+      <div class="actions">
+        <a class="button primary" href="https://github.com/Br0des/WinPocket/actions">Get WinPocket <span aria-hidden="true">↗</span></a>
+        <a class="button secondary" href="https://www.microsoft.com/software-download/windows11arm64">Windows 11 ARM ISO</a>
+      </div>
+      <p class="note">Bring your own Windows installer and license.</p>
+    </section>
+    <section class="how wrap" id="setup">
+      <p class="eyebrow">Three steps</p>
+      <div class="step"><span>01</span><div><h2>Install the app</h2><p>Build or download the unsigned IPA and install it with a development signing method.</p></div></div>
+      <div class="step"><span>02</span><div><h2>Import your ISO</h2><p>Create a Windows VM, choose <b>Boot ISO Image</b>, then select the ARM64 installer from Files.</p><a class="inline-link" href="https://www.microsoft.com/en-us/software-download/windows11arm64">Download Windows 11 ARM ISO ↗</a></div></div>
+      <div class="step"><span>03</span><div><h2>Start Windows Setup</h2><p>Keep the ISO mounted for installation. Use the in-app StikDebug handoff to enable JIT.</p></div></div>
+    </section>
+    <section class="details wrap">
+      <p><b>QEMU emulation</b><span>Windows ARM is the best fit. Emulated CPU performance is below a PC.</span></p>
+      <p><b>Graphics</b><span>QEMU OpenGL display acceleration is included. Windows 3D acceleration depends on guest driver support.</span></p>
+      <p><b>Open source</b><span>Built from open-source emulator components. Windows media is not included.</span></p>
+    </section>
+  </main>
+  <footer class="wrap"><a class="brand" href="#top"><img src="assets/winpocket-icon.png" width="24" height="24" alt=""><span>WinPocket</span></a><a href="https://github.com/Br0des/WinPocket">Source on GitHub ↗</a></footer>
+  <script>
+    const items = document.querySelectorAll(".step, .details p");
+    if ("IntersectionObserver" in window) {
+      const observer = new IntersectionObserver(entries => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) { entry.target.classList.add("is-visible"); observer.unobserve(entry.target); }
+        });
+      }, { threshold: 0.18, rootMargin: "0px 0px -6% 0px" });
+      items.forEach((item, index) => { item.classList.add("reveal"); item.style.setProperty("--reveal-delay", `${(index % 3) * 75}ms`); observer.observe(item); });
+    }
+  </script>
+</body>
+</html>
+
+
+

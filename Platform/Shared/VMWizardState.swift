@@ -450,7 +450,15 @@ struct AlertMessage: Identifiable {
                 config.displays[0].hardware = AnyQEMUConstant(rawValue: newCard)!
             }
         } else if isGLEnabled || operatingSystem == .Windows, let displayCard = config.displays.first?.hardware {
-            let newCard = displayCard.rawValue + "-gl"
+            // QEMU places "gl" before the bus suffix for virtio GPU devices.
+            // Simply appending "-gl" produces invalid names such as virtio-gpu-pci-gl.
+            let glVariants: [String: String] = [
+                "virtio-gpu-device": "virtio-gpu-gl-device",
+                "virtio-gpu-pci": "virtio-gpu-gl-pci",
+                "virtio-vga": "virtio-vga-gl",
+                "virtio-ramfb": "virtio-ramfb-gl"
+            ]
+            let newCard = glVariants[displayCard.rawValue] ?? displayCard.rawValue + "-gl"
             let allCards = systemArchitecture.displayDeviceType.allRawValues
             if allCards.contains(where: { $0 == newCard }) {
                 config.displays[0].hardware = AnyQEMUConstant(rawValue: newCard)!
