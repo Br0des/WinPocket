@@ -1,3 +1,28 @@
+## WinPocket product direction
+
+This repository is WinPocket: an iOS app for running Windows ARM64 virtual
+machines on iPhone and iPad. UTM/QEMU is the implementation foundation; keep
+WinPocket's product language, icon, website, and onboarding distinct from UTM.
+Avoid broad upstream cleanup while working on WinPocket features.
+
+- Prefer an ARM64 Windows guest on Apple Silicon. Treat JIT through StikDebug as
+  an optional user-enabled capability, and describe GPU acceleration only when
+  the selected QEMU device/backend actually provides it. Measure performance
+  changes and do not silently enable unstable experimental settings.
+- Windows installers must come from Microsoft's official distribution. Never
+  commit or mirror Windows ISO files. Keep downloads in app storage, show
+  progress/failure, and let users import their own installer as well.
+- Before reporting an iOS change as working, check the `WinPocket iOS` Actions
+  run for the exact commit and confirm the build/package steps passed. This
+  Windows workspace does not have Xcode. The workflow caches `sysroot-iOS-arm64`;
+  with a cache hit, the native dependency build is skipped. A cache miss can
+  take close to an hour. Preserve in-progress iOS runs; the workflow currently
+  cancels an older run when a new main-branch build starts.
+- If Actions fails, inspect its annotations and logs before changing source.
+  The workflow publishes Xcode compiler errors as annotations. Report what was
+  actually verified and do not claim a boot test unless Windows reached boot on
+  an iOS device.
+
 ## Building
 
 UTM **cannot** build without prebuilt native dependencies (QEMU, SPICE, …) staged
