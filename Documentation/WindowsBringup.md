@@ -61,6 +61,50 @@ checks below still govern any such claim.
 - Do not assume `CS_DEBUGGED` means the correct script is servicing traps: the flag may persist after a debugger detaches, and a different debugger can stop the process on a breakpoint without handling it. The [StikJIT integration guide](https://github.com/StikDebug/StikJIT/blob/main/INTEGRATION.md) describes the universal breakpoint protocol and requires preparation before detach. Preserve older devices' existing JIT behavior rather than automatically issuing traps to arbitrary debuggers.
 - Husk's bundled script has no clear license header at the pinned revision. Its provenance, and the distribution implications of combining the GPL-licensed allocator with WinPocket's existing components, require review before redistribution; this is not a legal conclusion.
 
+### Husk backend: display, audio, balloon and snapshot are in the QEMU build
+
+The parts of Husk that are not about JIT are now compiled into the iOS QEMU
+library as well, so the app can drive the machine directly instead of asking
+SPICE to encode it. `patches/data/qemu-10.0.12-utm/{ui,audio,system}/` vendors
+Husk's five modules (GPL-2.0-or-later, provenance in
+[`THIRD_PARTY_NOTICES.md`](../THIRD_PARTY_NOTICES.md)) and
+`scripts/husk-backend-integrate.py` wires each into the tree:
+
+| Module | What it gives the app |
+| --- | --- |
+| `ui/husk-display.c` | A `DisplayChangeListener` whose surface the app reads (`husk_display_lock_frame`), plus absolute pointer, QKeyCode keyboard and a modeset request over the guest console. |
+| `ui/husk-display-gl.c` | Presents a virgl scanout straight from its native `MTLTexture` (or blits the GL texture when there is no native handle) against the `CAMetalLayer` the app owns. |
+| `audio/husk-audio.c` | A QEMU audio backend named `husk`, so `-audiodev husk` is accepted by QAPI and PCM lands in a lock-free ring the app drains. |
+| `system/husk-balloon.c` | Host-driven balloon inflation under iOS jetsam pressure. |
+| `system/husk-snapshot.c` | `savevm`/`loadvm` of the whole machine into the userdata qcow2, so a Windows install boots once rather than every launch. |
+
+The integrator edits `ui/meson.build` (software listener in `system_ss`, GL
+listener in the OpenGL block), `audio/meson.build`, the two hand-written audio
+driver switches in `audio/audio_template.h` and `audio/audio.c` (a driver missing
+from either falls into a bare `abort()`), the `AudiodevDriver` enum and union in
+`qapi/audio.json`, `system/meson.build`, and the shared-library export list in
+`system/qemu.symbols`. It is idempotent, preserves each file's line endings, and
+fails the dependency build on any shape it does not recognise. QEMU is built
+with modules disabled, so the GL sources end up in the emulator library itself
+rather than a `ui-opengl` plugin the app could not call.
+
+Two boundaries worth knowing before the app-side port lands:
+
+- **One GL context per console.** `husk-display-gl.c` installs a `DisplayGLCtx`
+on console 0, and `qemu_console_set_display_gl_ctx()` holds one. A session that
+keeps SPICE's GL display cannot also drive the Husk GL listener on the same
+console; the software listener has no such conflict because it only reads
+surfaces. Choose one GL owner per console.
+- **The SPICE display is also the control plane.** WinPocket's QMP channel,
+serial ports and suspend path currently arrive through SPICE ports, so the app
+cannot simply drop `-spice`. The backend above is what replaces its *display and
+audio*; replacing the rest needs a QMP transport of its own and is not part of
+this step.
+
+What this does **not** establish: that the app calls any of it yet, that the GL
+path works on a device (only that it compiles on CI), or that Windows boots with
+the Husk display. Those remain acceptance checks below.
+
 ## Acceptance checks
 
 - Build and package the exact commit in the `WinPocket iOS` Actions workflow. Install a correctly signed build on an identified iPhone or iPad and record its model, iOS version, installation method and available memory.

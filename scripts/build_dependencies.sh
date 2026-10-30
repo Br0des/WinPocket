@@ -950,6 +950,13 @@ integrate_husk_jit () {
     python3 "$BASEDIR/husk-jit-integrate.py" "$QEMU_DIR" "$BASEDIR/.."
 }
 
+# Husk backend integration: the display (software and GL), audio, balloon and
+# snapshot modules the iOS app drives instead of SPICE. Same contract as the JIT
+# integrator: idempotent, shape-checked, and verified before QEMU is configured.
+integrate_husk_backend () {
+    python3 "$BASEDIR/husk-backend-integrate.py" "$QEMU_DIR" "$BASEDIR/.."
+}
+
 
 # parse args
 ARCH=
@@ -1200,8 +1207,10 @@ mkdir -p "$PREFIX/Frameworks"
 copy_private_headers
 build_pkg_config
 build_qemu_dependencies
-# Wire the Husk iOS JIT integration into the QEMU tree before it is configured.
+# Wire the Husk iOS JIT and backend integrations into the QEMU tree before it is
+# configured.
 integrate_husk_jit
+integrate_husk_backend
 
 build $QEMU_DIR --cross-prefix="" $QEMU_PLATFORM_BUILD_FLAGS $QEMU_DEBUG_FLAGS
 build_spice_client

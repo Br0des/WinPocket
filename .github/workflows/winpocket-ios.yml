@@ -79,7 +79,7 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: sysroot-iOS-arm64
-          key: winpocket-qemu-ios-arm64-${{ runner.os }}-xcode-${{ steps.xcode.outputs.version }}-${{ hashFiles('patches/sources', 'scripts/build_dependencies.sh', 'scripts/fixup.sh', 'patches/**/*.patch', 'patches/data/**') }}
+          key: winpocket-qemu-ios-arm64-${{ runner.os }}-xcode-${{ steps.xcode.outputs.version }}-${{ hashFiles('patches/sources', 'scripts/build_dependencies.sh', 'scripts/fixup.sh', 'scripts/husk-jit-integrate.py', 'scripts/husk-backend-integrate.py', 'patches/**/*.patch', 'patches/data/**') }}
 
       - name: Build iOS QEMU dependencies
         if: steps.qemu-cache.outputs.cache-hit != 'true'
@@ -92,7 +92,7 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: sysroot-iOS-arm64
-          key: winpocket-qemu-ios-arm64-${{ runner.os }}-xcode-${{ steps.xcode.outputs.version }}-${{ hashFiles('patches/sources', 'scripts/build_dependencies.sh', 'scripts/fixup.sh', 'patches/**/*.patch', 'patches/data/**') }}
+          key: winpocket-qemu-ios-arm64-${{ runner.os }}-xcode-${{ steps.xcode.outputs.version }}-${{ hashFiles('patches/sources', 'scripts/build_dependencies.sh', 'scripts/fixup.sh', 'scripts/husk-jit-integrate.py', 'scripts/husk-backend-integrate.py', 'patches/**/*.patch', 'patches/data/**') }}
 
       - name: Build iOS app
         run: |
