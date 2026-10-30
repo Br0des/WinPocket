@@ -110,7 +110,7 @@ struct VMWizardHardwareView: View {
             guard os == .Windows else {
                 return defaultRam
             }
-            #if os(macOS)
+            #if os(macOS) || (os(iOS) && !WITH_QEMU_TCI && !WITH_REMOTE)
             return max(defaultRam, 4096)
             #else
             return max(defaultRam, 2048)
@@ -205,10 +205,20 @@ struct VMWizardHardwareView: View {
     
     var body: some View {
         VMWizardContent("Hardware") {
+            #if !os(iOS) || WITH_QEMU_TCI || WITH_REMOTE
             if !wizardState.useVirtualization {
                 Toggle("Expert Mode", isOn: $isExpertMode)
                     .help("List all supported hardware. May require manual configuration to boot.")
             }
+            #endif
+            #if os(iOS) && !WITH_QEMU_TCI && !WITH_REMOTE
+            Section {
+                Label("Windows 11 for ARM", systemImage: "desktopcomputer")
+                Text("Windows 11 requires at least 4 GiB of memory. iOS may limit memory available to WinPocket; allocating too much can cause the app to close. Less than 4 GiB may not install or run Windows.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            #else
             if !wizardState.useVirtualization && isExpertMode {
                 Section {
                     VMConfigConstantPicker(selection: $wizardState.systemArchitecture)
@@ -243,6 +253,7 @@ struct VMWizardHardwareView: View {
                     wizardState.legacyHardware = newValue.isLegacyHardware
                 }
             }
+            #endif
             Section {
                 RAMSlider(systemMemory: $wizardState.systemMemoryMib) { _ in
                     let selectedMax = selectedMachine?.maxRam ?? 0
@@ -285,6 +296,13 @@ struct VMWizardHardwareView: View {
 
             
             
+            #if os(iOS) && !WITH_QEMU_TCI && !WITH_REMOTE
+            if #available(iOS 16, *) {
+                DetailedSection("Experimental graphics", description: "Requests an accelerated display device and the DXMT DirectX 11 backend when available. The renderer must be Default or ANGLE (Metal), DirectX must not be disabled, and the experimental 3D driver must be installed from Windows guest tools. Games may not work and the VM may become unstable.") {
+                    Toggle("Try experimental Windows 3D", isOn: $wizardState.isGLEnabled)
+                }
+            }
+            #endif
             if !wizardState.useAppleVirtualization && wizardState.operatingSystem == .Linux {
                 DetailedSection("Display Output", description: "There are known issues in some newer Linux drivers including black screen, broken compositing, and apps failing to render.") {
                     Toggle("Enable display output", isOn: $wizardState.isDisplayEnabled)

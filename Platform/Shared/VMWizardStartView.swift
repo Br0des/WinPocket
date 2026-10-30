@@ -51,8 +51,35 @@ struct VMWizardStartView: View {
         #endif
     }
     
+    private var startTitle: LocalizedStringKey {
+        #if os(iOS) && !WITH_QEMU_TCI && !WITH_REMOTE
+        "Set up Windows"
+        #else
+        "Start"
+        #endif
+    }
+
     var body: some View {
-        VMWizardContent("Start") {
+        VMWizardContent(startTitle) {
+            #if os(iOS) && !WITH_QEMU_TCI && !WITH_REMOTE
+            Section {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Windows 11 for ARM")
+                        .font(.title2.bold())
+                    Text("Create a Windows workspace using an official ARM64 installer. CPU emulation requires JIT on this build.")
+                        .foregroundColor(.secondary)
+                }
+                Button {
+                    wizardState.useVirtualization = false
+                    wizardState.operatingSystem = .Windows
+                    wizardState.useAppleVirtualization = false
+                    wizardState.isGuestToolsInstallRequested = true
+                    wizardState.next()
+                } label: {
+                    Label("Get started", systemImage: "arrow.right.circle.fill")
+                }
+            }
+            #else
             Section {
                 let virtButton = Button {
                     wizardState.useVirtualization = true
@@ -105,11 +132,15 @@ struct VMWizardStartView: View {
                     Text("This build does not emulation.")
                 }
             }
+            #endif
             #if os(iOS) && WITH_JIT
             Section {
                 if isJitAvailable {
-                    Label("JIT is enabled for WinPocket", systemImage: "checkmark.circle.fill")
+                    Label("JIT access detected", systemImage: "checkmark.circle.fill")
                         .foregroundStyle(.green)
+                    Text("Access detection does not confirm that executable memory works on every device. Newer devices with TXM/SPTM need additional support not yet implemented in WinPocket.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 } else {
                     Button {
                         requestJITWithStikDebug()
@@ -124,6 +155,7 @@ struct VMWizardStartView: View {
                 Text("Emulation speed")
             }
             #endif
+            #if !os(iOS) || WITH_QEMU_TCI || WITH_REMOTE
             Section {
                 Button {
                     NotificationCenter.default.post(name: NSNotification.OpenVirtualMachine, object: nil)
@@ -147,6 +179,7 @@ struct VMWizardStartView: View {
             } header: {
                 Text("Existing")
             }
+            #endif
 
         }
         .onAppear {
@@ -206,7 +239,7 @@ struct VMWizardStartView: View {
         guard jb_has_jit_entitlement() || jb_has_cs_disabled() else {
             Main.jitAvailable = false
             jitAvailable = false
-            jitAlertMessage = "StikDebug returned, but WinPocket could not confirm JIT access. Check Developer Mode, pairing, and StikDebug's JIT status."
+            jitAlertMessage = "WinPocket could not confirm JIT access. Check Developer Mode, signing, pairing, and StikDebug's JIT status. Some devices need additional JIT support that this build does not yet provide."
             showJitAlert = true
             return
         }

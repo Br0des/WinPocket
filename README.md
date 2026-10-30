@@ -1,6 +1,6 @@
 # WinPocket
 
-WinPocket is an iPhone and iPad app for setting up Windows virtual machines with QEMU. Import your own Windows ARM installer and boot it in a VM.
+WinPocket is an iPhone and iPad app for setting up Windows virtual machines with QEMU. Windows boot and experimental graphics have not yet been verified on an iPhone or iPad.
 
 <p align="center">
   <img src="website/assets/winpocket-icon.png" alt="WinPocket Windows logo app icon" width="144">
@@ -11,15 +11,14 @@ WinPocket is an iPhone and iPad app for setting up Windows virtual machines with
 ## Start a Windows VM
 
 1. Install the unsigned IPA from the iOS build workflow with a development signing method such as AltStore or SideStore. The signature must preserve `get-task-allow` for JIT.
-2. Choose **Create a New Virtual Machine** → **Emulate** → **Windows**.
-3. Download the official [Windows 11 Arm64 ISO from Microsoft](https://www.microsoft.com/en-us/software-download/windows11arm64). Turn on **Install Windows 10 or higher**, choose **Boot ISO Image**, and import the ISO from Files. Arm64 matches the iPhone and iPad CPU family; x64 media requires slower cross-architecture emulation.
-4. Keep the 64 GB virtual disk and mount the ISO for Windows Setup. The preset uses 2 GB RAM; increase it in hardware settings if your device has enough free memory.
-5. For faster CPU emulation, use **Enable JIT with StikDebug** in the app. StikDebug, Developer Mode, and pairing setup are required. Close other memory-heavy apps before starting the VM.
-6. When installation finishes, shut down Windows, eject the ISO or set the virtual disk first in boot order, then start the VM again.
+2. Choose **Set up Windows**, then configure memory and storage. Windows 11 requires at least 4 GiB RAM and 64 GiB storage. iOS memory limits may prevent the app from allocating enough RAM.
+3. Download the official [Windows 11 Arm64 ISO from Microsoft](https://www.microsoft.com/en-us/software-download/windows11arm64) or import it from Files. The Windows setup flow uses ARM64 QEMU emulation, not hardware virtualization.
+4. Use **Enable JIT with StikDebug** if needed. This requires a compatible signing method, Developer Mode and StikDebug pairing. JIT detection does not guarantee execution on every device: TXM/SPTM devices need an executable-memory protocol that has not yet been implemented here.
+5. Save the machine and wait for the guest tools download to finish before starting it. After installation, shut down Windows and eject the installer ISO if it boots into Setup again.
 
-The Windows preset selects QEMU's OpenGL-capable VirtIO display device when the architecture supports it. Windows guest 3D acceleration depends on compatible drivers; QEMU still emulates the CPU, so performance is below a PC.
+The **Try experimental Windows 3D** option requests an accelerated display device, but does not guarantee accelerated guest graphics. On iOS 16+, the experimental DXMT DirectX 11 path also requires the default or ANGLE (Metal) renderer, DirectX enabled, and the experimental 3D driver installed from the Windows guest tools. It may be unstable and has not been verified on a device. See the [Windows guest tools documentation](https://docs.getutm.app/guest-support/windows/) for driver details.
 
-Windows installer media and licenses are not included. Obtain them from Microsoft or another authorized source.
+Windows installer media and licenses are not included; obtain Windows from Microsoft. The [bring-up notes](Documentation/WindowsBringup.md) describe the remaining Husk JIT integration and device tests.
 
 ## Build
 

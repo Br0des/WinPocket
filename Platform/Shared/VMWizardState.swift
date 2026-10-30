@@ -222,7 +222,11 @@ struct AlertMessage: Identifiable {
         var nextPage = currentPage
         switch currentPage {
         case .start:
+            #if os(iOS) && !WITH_QEMU_TCI && !WITH_REMOTE
+            nextPage = .hardware
+            #else
             nextPage = .operatingSystem
+            #endif
         case .operatingSystem:
             nextPage = .hardware
         case .hardware:
@@ -279,7 +283,11 @@ struct AlertMessage: Identifiable {
                 alertMessage = AlertMessage(NSLocalizedString("Invalid drive size specified.", comment: "VMWizardState"))
                 return
             }
+            #if os(iOS) && !WITH_QEMU_TCI && !WITH_REMOTE
+            nextPage = operatingSystem == .Windows ? .summary : .sharing
+            #else
             nextPage = .sharing
+            #endif
             if useAppleVirtualization {
                 if operatingSystem != .Linux {
                     nextPage = .summary // only support linux currently
@@ -442,6 +450,11 @@ struct AlertMessage: Identifiable {
             config.qemu.hasUefiBoot = false
             config.qemu.hasTPMDevice = false
         }
+        #if os(iOS) && !WITH_QEMU_TCI && !WITH_REMOTE
+        let useAcceleratedDisplay = isGLEnabled
+        #else
+        let useAcceleratedDisplay = isGLEnabled || operatingSystem == .Windows
+        #endif
         if operatingSystem == .Linux && config.displays.first != nil {
             // change default display to virtio-gpu if supported
             let newCard = isGLEnabled ? "virtio-gpu-gl-pci" : "virtio-gpu-pci"
@@ -449,7 +462,7 @@ struct AlertMessage: Identifiable {
             if allCards.contains(where: { $0 == newCard }) {
                 config.displays[0].hardware = AnyQEMUConstant(rawValue: newCard)!
             }
-        } else if isGLEnabled || operatingSystem == .Windows, let displayCard = config.displays.first?.hardware {
+        } else if useAcceleratedDisplay, let displayCard = config.displays.first?.hardware {
             // QEMU places "gl" before the bus suffix for virtio GPU devices.
             // Simply appending "-gl" produces invalid names such as virtio-gpu-pci-gl.
             let glVariants: [String: String] = [

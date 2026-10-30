@@ -39,7 +39,13 @@ struct ContentView: View {
     @AppStorage("ServerAutostart") private var isServerAutostart: Bool = false
 
     var body: some View {
-        VMNavigationListView()
+        Group {
+            #if os(iOS) && !WITH_QEMU_TCI && !WITH_REMOTE
+            WinPocketHomeView()
+            #else
+            VMNavigationListView()
+            #endif
+        }
         .overlay(data.showSettingsModal ? AnyView(EmptyView()) : AnyView(BusyOverlay()))
         #if os(macOS) || os(visionOS)
         .frame(minWidth: 800, idealWidth: 1200, minHeight: 600, idealHeight: 800)
@@ -85,7 +91,9 @@ struct ContentView: View {
         .onAppear {
             Task {
                 await data.listRefresh()
+                #if !os(iOS) || WITH_QEMU_TCI || WITH_REMOTE
                 await releaseHelper.fetchReleaseNotes()
+                #endif
                 if #available(iOS 17, macOS 14, *) {
                     if !releaseHelper.isReleaseNotesShown {
                         UTMTipCreateVM.isVMListEmpty = data.virtualMachines.count == 0
@@ -122,9 +130,11 @@ struct ContentView: View {
                     #endif
 
                     // ignore error when we are running on a HV only build
+                    #if !os(iOS) || WITH_QEMU_TCI || WITH_REMOTE
                     if !UTMCapabilities.current.contains(.hasHypervisorSupport) {
                         throw NSLocalizedString("Your version of iOS does not support running VMs while unmodified. You must either run UTM while jailbroken or with a remote debugger attached. See https://getutm.app/install/ for more details.", comment: "ContentView")
                     }
+                    #endif
                 }
             }
             #endif
@@ -176,6 +186,202 @@ struct ContentView: View {
         }
     }
 }
+
+#if os(iOS) && !WITH_QEMU_TCI && !WITH_REMOTE
+private struct WinPocketHomeView: View {
+    @EnvironmentObject private var data: UTMData
+    @State private var showAppSettings = false
+    @State private var sheetPresented = false
+    @State private var confirmAction: ConfirmAction?
+
+    var body: some View {
+        NavigationView {
+            List {
+                VStack(alignment: .leading, spacing: 24) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Your Windows workspace")
+                            .font(.largeTitle.bold())
+                        Text("Set up Windows 11 for ARM, then pick up where you left off.")
+                            .foregroundColor(.secondary)
+                    }
+
+                    Button(action: { data.newVM() }) {
+                        Label("Set up Windows", systemImage: "plus")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+
+                    if data.virtualMachines.isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Label("Start with an official installer", systemImage: "desktopcomputer")
+                                .font(.headline)
+                            Text("Download Windows from Microsoft or choose an ARM64 ISO from Files. You will need space for the installer and the virtual disk.")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color.secondary.opacity(0.08))
+                        .cornerRadius(16)
+                    }
+                }
+                .padding(.vertical)
+                if !data.virtualMachines.isEmpty {
+                    Section("Your machines") {
+                        ForEach(data.virtualMachines) { vm in
+                            if vm.isLoaded {
+                                NavigationLink(destination: WinPocketMachineView(vm: vm)) {
+                                    WinPocketMachineRow(vm: vm)
+                                }
+                                .contextMenu {
+                                    Button("Start") { data.run(vm: vm) }
+                                        .disabled(!vm.isStopped && !vm.isTakeoverAllowed)
+                                    Button("Remove", role: .destructive) {
+                                        confirmAction = .confirmDeleteVM(vm: vm)
+                                    }
+                                    .disabled(!vm.isModifyAllowed)
+                                }
+                            } else {
+                                UTMUnavailableVMView(vm: vm)
+                            }
+                        }
+                    }
+                }
+                if !data.pendingVMs.isEmpty {
+                    Section("Downloads") {
+                        ForEach(data.pendingVMs, id: \.name) { vm in
+                            UTMPendingVMView(vm: vm)
+                        }
+                    }
+                }
+            }
+            .navigationTitle("WinPocket")
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Settings") { showAppSettings = true }
+                }
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Import") {
+                        NotificationCenter.default.post(name: NSNotification.OpenVirtualMachine, object: nil)
+                    }
+                }
+            }
+            .modifier(VMConfirmActionModifier(confirmAction: $confirmAction) { _ in })
+            .sheet(isPresented: $sheetPresented) {
+                if data.showNewVMSheet {
+                    VMWizardView()
+                } else if showAppSettings {
+                    UTMSettingsView()
+                }
+            }
+            .onChange(of: data.showNewVMSheet) { isPresented in
+                if isPresented {
+                    showAppSettings = false
+                    sheetPresented = true
+                }
+            }
+            .onChange(of: showAppSettings) { isPresented in
+                if isPresented {
+                    data.showNewVMSheet = false
+                    sheetPresented = true
+                }
+            }
+            .onChange(of: sheetPresented) { isPresented in
+                if !isPresented {
+                    data.showNewVMSheet = false
+                    showAppSettings = false
+                }
+            }
+            .onReceive(NSNotification.OpenVirtualMachine) { _ in
+                sheetPresented = false
+            }
+        }
+        .navigationViewStyle(.stack)
+    }
+}
+
+private struct WinPocketMachineView: View {
+    @ObservedObject var vm: VMData
+    @EnvironmentObject private var data: UTMData
+    @State private var showSettings = false
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                Screenshot(vm: vm, large: false)
+                    .cornerRadius(16)
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(vm.detailsTitleLabel).font(.title2.bold())
+                        Text(vm.stateLabel).foregroundColor(.secondary)
+                    }
+                    Spacer()
+                    if vm.isBusy {
+                        Spinner(size: .large)
+                    } else if vm.isStopped || vm.isTakeoverAllowed {
+                        Button("Start") { data.run(vm: vm) }
+                            .buttonStyle(.borderedProminent)
+                    }
+                }
+                if let config = vm.config as? UTMQemuConfiguration {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Installer and guest tools").font(.headline)
+                        VMRemovableDrivesView(vm: vm, config: config)
+                        Button("Download Windows guest tools") {
+                            if let wrapped = vm.wrapped {
+                                NotificationCenter.default.post(name: NSNotification.InstallGuestTools, object: wrapped)
+                            }
+                        }
+                        .disabled(!vm.isModifyAllowed)
+                    }
+                    .padding()
+                    .background(Color.secondary.opacity(0.08))
+                    .cornerRadius(16)
+                }
+            }
+            .padding()
+            .frame(maxWidth: 700)
+            .frame(maxWidth: .infinity)
+        }
+        .navigationTitle(vm.detailsTitleLabel)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button("Settings") { showSettings = true }
+                    .disabled(!vm.isModifyAllowed || vm.hasSuspendState)
+            }
+        }
+        .sheet(isPresented: $showSettings) {
+            if let config = vm.config as? UTMQemuConfiguration {
+                VMSettingsView(vm: vm, config: config)
+                    .environmentObject(data)
+            }
+        }
+    }
+}
+
+private struct WinPocketMachineRow: View {
+    @ObservedObject var vm: VMData
+
+    var body: some View {
+        HStack(spacing: 16) {
+            Image(systemName: "desktopcomputer")
+                .font(.title2)
+                .foregroundColor(.accentColor)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(vm.detailsTitleLabel).font(.headline)
+                Text(vm.stateLabel).font(.subheadline).foregroundColor(.secondary)
+            }
+            Spacer()
+            Image(systemName: "chevron.right").foregroundColor(.secondary)
+        }
+        .padding()
+        .background(Color.secondary.opacity(0.08))
+        .cornerRadius(16)
+    }
+}
+#endif
 
 extension ContentView: DropDelegate {
     func validateDrop(info: DropInfo) -> Bool {

@@ -61,6 +61,38 @@ struct VMWizardSummaryView: View {
                 }
             }
             Spacer()
+            #elseif os(iOS) && !WITH_QEMU_TCI && !WITH_REMOTE
+            Form {
+                Section("Your Windows workspace") {
+                    info
+                    HStack {
+                        Text("Memory")
+                        Spacer()
+                        Text(ByteCountFormatter.string(fromByteCount: Int64(wizardState.systemMemoryMib * wizardState.bytesInMib), countStyle: .binary))
+                    }
+                    HStack {
+                        Text("Storage")
+                        Spacer()
+                        Text(storageDescription)
+                    }
+                    if let bootImageURL = wizardState.bootImageURL {
+                        HStack {
+                            Text("Installer")
+                            Spacer()
+                            Text(bootImageURL.lastPathComponent).lineLimit(1)
+                        }
+                    }
+                    HStack {
+                        Text("Experimental Windows 3D")
+                        Spacer()
+                        Text(wizardState.isGLEnabled ? "Requested" : "Off")
+                    }
+                }
+                Section {
+                    Text("After saving, wait for the Windows guest tools to finish downloading before starting your machine. Windows setup and activation are completed inside the virtual machine.")
+                        .foregroundColor(.secondary)
+                }
+            }
             #else
             Form {
                 Section(header: Text("Information")) {

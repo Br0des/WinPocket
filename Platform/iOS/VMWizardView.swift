@@ -126,7 +126,7 @@ fileprivate struct WizardWrapper: View {
 
 @available(iOS 16, visionOS 1.0, *)
 fileprivate struct WizardNavigationView: View {
-    @StateObject var wizardState = VMWizardState()
+    @ObservedObject var wizardState: VMWizardState
     let onDismiss: () -> Void
     @Environment(\.presentationMode) private var presentationMode: Binding<PresentationMode>
     @State private var navigationPath: NavigationPath = .init()

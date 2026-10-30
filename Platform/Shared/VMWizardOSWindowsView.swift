@@ -29,6 +29,7 @@ struct VMWizardOSWindowsView: View {
     var body: some View {
         VMWizardContent("Windows") {
             #if !WITH_QEMU_TCI
+            #if !os(iOS) || WITH_REMOTE
             Section {
                 Toggle("Install Windows 10 or higher", isOn: $wizardState.isWindows10OrHigher)
                     .onChange(of: wizardState.isWindows10OrHigher) { newValue in
@@ -68,6 +69,12 @@ struct VMWizardOSWindowsView: View {
             } header: {
                 Text("Image File Type")
             }
+            #else
+            Section {
+                Text("Choose the official Windows 11 ARM64 ISO from Microsoft, or import one from Files.")
+                    .foregroundColor(.secondary)
+            }
+            #endif
             #endif
 
             Section {
@@ -120,7 +127,11 @@ struct VMWizardOSWindowsView: View {
             // Disabled for non-Windows 10 installs due to autounattend version
             if wizardState.isWindows10OrHigher {
                 DetailedSection("", description: "Download and mount the guest support package for Windows. This is required for some features including dynamic resolution and clipboard sharing.") {
+                    #if os(iOS) && !WITH_QEMU_TCI && !WITH_REMOTE
+                    Toggle("Download Windows guest tools", isOn: $wizardState.isGuestToolsInstallRequested)
+                    #else
                     Toggle("Install drivers and SPICE tools", isOn: $wizardState.isGuestToolsInstallRequested)
+                    #endif
                 }
             }
         }
@@ -243,16 +254,31 @@ private final class WindowsISODownloadState: NSObject, ObservableObject, WKNavig
                  decidePolicyFor navigationAction: WKNavigationAction,
                  preferences: WKWebpagePreferences,
                  decisionHandler: @escaping (WKNavigationActionPolicy, WKWebpagePreferences) -> Void) {
-        guard let url = navigationAction.request.url,
-              url.pathExtension.lowercased() == "iso",
-              let host = url.host?.lowercased(),
-              host == "microsoft.com" || host.hasSuffix(".microsoft.com") else {
-            decisionHandler(.allow, preferences)
+        decisionHandler(.allow, preferences)
+    }
+
+    func webView(_ webView: WKWebView,
+                 decidePolicyFor navigationResponse: WKNavigationResponse,
+                 decisionHandler: @escaping (WKNavigationResponsePolicy) -> Void) {
+        let response = navigationResponse.response
+        guard let url = response.url, isMicrosoftDownloadURL(url),
+              url.pathExtension.lowercased() == "iso" || response.suggestedFilename?.lowercased().hasSuffix(".iso") == true else {
+            decisionHandler(.allow)
             return
         }
-        // WKWebpagePreferences has no download opt-in; returning .download is what
-        // turns this navigation into a download.
-        decisionHandler(.download, preferences)
+        if let httpResponse = response as? HTTPURLResponse, !(200...299).contains(httpResponse.statusCode) {
+            errorMessage = "Microsoft's download returned HTTP \(httpResponse.statusCode). Please try again."
+            decisionHandler(.cancel)
+        } else {
+            decisionHandler(.download)
+        }
+    }
+
+    private func isMicrosoftDownloadURL(_ url: URL) -> Bool {
+        guard url.scheme?.lowercased() == "https", let host = url.host?.lowercased() else {
+            return false
+        }
+        return host == "microsoft.com" || host.hasSuffix(".microsoft.com")
     }
 
     func webView(_ webView: WKWebView,
@@ -280,7 +306,13 @@ private final class WindowsISODownloadState: NSObject, ObservableObject, WKNavig
                  decideDestinationUsing response: URLResponse,
                  suggestedFilename: String,
                  completionHandler: @escaping (URL?) -> Void) {
-        guard suggestedFilename.lowercased().hasSuffix(".iso") else {
+        guard let url = response.url, isMicrosoftDownloadURL(url),
+              let httpResponse = response as? HTTPURLResponse,
+              (200...299).contains(httpResponse.statusCode),
+              suggestedFilename.lowercased().hasSuffix(".iso") else {
+            isDownloading = false
+            progressObservation = nil
+            errorMessage = "The download was not a valid Microsoft ISO response. Please try again or import an installer from Files."
             completionHandler(nil)
             return
         }
@@ -292,6 +324,9 @@ private final class WindowsISODownloadState: NSObject, ObservableObject, WKNavig
 
             let safeFilename = URL(fileURLWithPath: suggestedFilename).lastPathComponent
             guard safeFilename.lowercased().hasSuffix(".iso") else {
+                isDownloading = false
+                progressObservation = nil
+                errorMessage = "The installer filename is invalid. Please try again or import it from Files."
                 completionHandler(nil)
                 return
             }
@@ -300,6 +335,8 @@ private final class WindowsISODownloadState: NSObject, ObservableObject, WKNavig
             destinationURL = destination
             completionHandler(destination)
         } catch {
+            isDownloading = false
+            progressObservation = nil
             errorMessage = error.localizedDescription
             completionHandler(nil)
         }
