@@ -943,6 +943,13 @@ fixup_all () {
 remove_shared_gst_plugins () {
     find "$SYSROOT_DIR/lib/gstreamer-1.0" -name '*.dylib' -exec rm \{\} \;
 }
+# Husk iOS JIT integration (Documentation/WindowsBringup.md, JIT 1): copy the
+# vendored tcg/ sources into the tree and wire region.c, tcg/meson.build and
+# system/qemu.symbols. Idempotent, and verified before the QEMU build starts.
+integrate_husk_jit () {
+    python3 "$BASEDIR/husk-jit-integrate.py" "$QEMU_DIR" "$BASEDIR/.."
+}
+
 
 # parse args
 ARCH=
@@ -1193,6 +1200,9 @@ mkdir -p "$PREFIX/Frameworks"
 copy_private_headers
 build_pkg_config
 build_qemu_dependencies
+# Wire the Husk iOS JIT integration into the QEMU tree before it is configured.
+integrate_husk_jit
+
 build $QEMU_DIR --cross-prefix="" $QEMU_PLATFORM_BUILD_FLAGS $QEMU_DEBUG_FLAGS
 build_spice_client
 build_vulkan_drivers

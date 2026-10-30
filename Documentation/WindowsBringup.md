@@ -20,6 +20,38 @@ The existing StikDebug URL handoff is not the complete executable-memory protoco
 
 This is an integration plan, not a claim that Husk's allocator is already wired into WinPocket. Do not copy its Android snapshot workaround into Windows: the stated safety condition depends on Android-specific guest behavior.
 
+### JIT 1 status: allocator source integrated into the QEMU build
+
+Requirement 1 is implemented in this tree (2026-10-30, `qemu-10.0.12-utm`):
+
+- `patches/data/qemu-10.0.12-utm/tcg/` vendors the Husk allocator
+  (`husk-ios-jit.c`, `husk-ios-jit.h`) and a C translation of its break
+  sequences (`husk-brk.c`, replacing `husk-brk.S` so meson handles them as plain
+  C with fixed-register inline assembly). Each file carries its provenance
+  header (Husk `src/ios-jit`, GPL-2.0-or-later) — see requirement 5, which
+  remains open.
+- `scripts/husk-jit-integrate.py <qemu-tree> <repo-root>` wires them into an
+  unpacked QEMU tree: appends the include/hook to `tcg/region.c` (a guarded
+  `alloc_code_gen_buffer_splitwx_husk_ios` that tries the debugger-serviced
+  dual mapping first and falls back to the vmremap path on failure), adds the
+  two sources to `tcg/meson.build`, and appends the 13 app-facing
+  `husk_ios_*` symbols to `system/qemu.symbols`. It is idempotent, CRLF-aware,
+  refuses to touch a file it does not recognize, and hard-verifies its own
+  edits. Interpreter and non-Apple builds compile without the husk code.
+- `scripts/build_dependencies.sh` calls the integrator after
+  `build_qemu_dependencies` and before QEMU's configure, so both fresh and
+  `-rebuild` runs get it; a `download()` already stages the vendored sources
+  from `patches/data/` when it unpacks QEMU.
+- Verified locally against a fixture tree built from the pinned upstream
+  `region.c`, `tcg/meson.build` and `system/qemu.symbols` (first pass,
+  idempotence, guard placement), and the vendored sources pass `clang
+  -fsyntax-only` on the non-iOS stub branch.
+
+Not yet done: requirements 2–4 (app-side StikDebug coordination, prewarm strategy,
+and device testing) and the Actions dependency-cache-key update on the next
+sysroot rebuild. None of this asserts a successful Windows boot; the acceptance
+checks below still govern any such claim.
+
 ### Integration findings
 
 - The pinned Husk `region.c` patch applies in a dry run to the corresponding UTM QEMU release source. This does **not** test compilation or the rest of Husk's integration script, which also changes the build and export lists.
