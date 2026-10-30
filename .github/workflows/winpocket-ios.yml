@@ -59,7 +59,20 @@ jobs:
         # provides the Metal toolchain, but the xcode-27 preview image ships
         # Xcode 27 without it, so the archive fails with "cannot execute tool
         # 'metal' due to missing Metal Toolchain". This is idempotent.
-        run: sudo xcodebuild -downloadComponent MetalToolchain
+        # The download comes from Apple's CDN and intermittently fails with
+        # exit code 70, which is not a build error -- retry before giving up.
+        run: |
+          set -e
+          n=1
+          until sudo xcodebuild -downloadComponent MetalToolchain; do
+            if [ $n -ge 5 ]; then
+              echo "Metal toolchain download failed after 5 attempts" >&2
+              exit 1
+            fi
+            echo "Metal toolchain download failed (attempt $n), retrying..." >&2
+            sleep $(( n * 30 ))
+            n=$(( n + 1 ))
+          done
 
       - name: Restore QEMU dependency cache
         id: qemu-cache
