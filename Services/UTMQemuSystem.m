@@ -15,6 +15,8 @@
 //
 
 #import <dlfcn.h>
+#import <stdbool.h>
+#import <stdint.h>
 #import <TargetConditionals.h>
 #import "UTMLogging.h"
 #import "UTMQemuSystem.h"
@@ -23,6 +25,127 @@
 
 @property (nonatomic) NSString *architecture;
 @property (nonatomic) NSMutableDictionary<NSString *, NSString *> *mutableEnvironment;
+
+@end
+
+// Resolved from the QEMU library once, in didLoadDylib:. Declared as plain
+// function pointers so a missing symbol is a NULL call site rather than a link
+// failure -- the app must still launch against a QEMU build without Husk.
+static void     (*huskDisplayInit)(void);
+static bool     (*huskLockFrame)(void *out);
+static void     (*huskUnlockFrame)(void);
+static uint64_t (*huskFrameSequence)(void);
+static void     (*huskGuestSize)(int32_t *width, int32_t *height);
+static void     (*huskSendPointer)(int32_t x, int32_t y, bool down);
+static bool     (*huskSendKey)(const char *qcode, bool down);
+static void     (*huskRequestUpdate)(void);
+static int      (*huskAudioPull)(int16_t *dst, int frames);
+static bool     (*huskAudioActive)(void);
+static void     (*huskBalloonSetBytes)(int64_t bytes);
+
+@implementation UTMHuskBackend
+
++ (UTMHuskBackend *)shared {
+    static UTMHuskBackend *shared;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        shared = [[UTMHuskBackend alloc] init];
+    });
+    return shared;
+}
+
+- (BOOL)isAvailable {
+    return huskDisplayInit != NULL;
+}
+
+- (void)loadSymbolsFromHandle:(void *)handle {
+    if (!handle) {
+        return;
+    }
+    huskDisplayInit = dlsym(handle, "husk_display_init");
+    huskLockFrame = dlsym(handle, "husk_display_lock_frame");
+    huskUnlockFrame = dlsym(handle, "husk_display_unlock_frame");
+    huskFrameSequence = dlsym(handle, "husk_display_sequence");
+    huskGuestSize = dlsym(handle, "husk_display_guest_size");
+    huskSendPointer = dlsym(handle, "husk_display_send_pointer");
+    huskSendKey = dlsym(handle, "husk_display_send_key");
+    huskRequestUpdate = dlsym(handle, "husk_display_request_update");
+    huskAudioPull = dlsym(handle, "husk_audio_pull");
+    huskAudioActive = dlsym(handle, "husk_audio_active");
+    huskBalloonSetBytes = dlsym(handle, "husk_balloon_set_bytes");
+    if (!huskDisplayInit) {
+        UTMLog(@"[husk] QEMU library has no Husk backend symbols; leaving it disabled");
+    } else {
+        UTMLog(@"[husk] display, audio and balloon symbols resolved");
+    }
+}
+
+- (void)startDisplayOnQemuThread {
+    if (!huskDisplayInit) {
+        return;
+    }
+    UTMLog(@"[husk] registering the display listener on console 0");
+    huskDisplayInit();
+}
+
+- (BOOL)lockFrame:(UTMHuskFrame *)out {
+    return huskLockFrame ? huskLockFrame((void *)out) : NO;
+}
+
+- (void)unlockFrame {
+    if (huskUnlockFrame) {
+        huskUnlockFrame();
+    }
+}
+
+- (uint64_t)frameSequence {
+    return huskFrameSequence ? huskFrameSequence() : 0;
+}
+
+- (void)guestSizeWidth:(int32_t *)width height:(int32_t *)height {
+    if (huskGuestSize) {
+        huskGuestSize(width, height);
+    } else {
+        if (width) { *width = 0; }
+        if (height) { *height = 0; }
+    }
+}
+
+- (void)sendPointerX:(int32_t)x y:(int32_t)y down:(BOOL)down {
+    if (huskSendPointer) {
+        huskSendPointer(x, y, down ? true : false);
+    }
+}
+
+- (BOOL)sendKey:(NSString *)qcode down:(BOOL)down {
+    if (!huskSendKey || !qcode) {
+        return NO;
+    }
+    return huskSendKey(qcode.UTF8String, down ? true : false);
+}
+
+- (void)requestUpdate {
+    if (huskRequestUpdate) {
+        huskRequestUpdate();
+    }
+}
+
+- (NSInteger)pullAudio:(int16_t *)dst frames:(NSInteger)frames {
+    if (!huskAudioPull || !dst || frames <= 0) {
+        return 0;
+    }
+    return huskAudioPull(dst, (int)frames);
+}
+
+- (BOOL)audioActive {
+    return huskAudioActive ? huskAudioActive() : NO;
+}
+
+- (void)balloonToBytes:(int64_t)bytes {
+    if (huskBalloonSetBytes) {
+        huskBalloonSetBytes(bytes);
+    }
+}
 
 @end
 
@@ -37,6 +160,13 @@ static int startQemu(UTMProcess *process, int argc, const char *argv[], const ch
     int ret = self->_qemu_init(argc, argv, envp);
     if (ret != 0) {
         return ret;
+    }
+    // qemu_init() returns with the BQL held and the graphics console already
+    // created, so this is the one window where a DisplayChangeListener can
+    // attach. After qemu_main_loop() starts, only QEMU's own thread may register
+    // one, and the guest is already running by then.
+    if (self.usesHuskBackend) {
+        [[UTMHuskBackend shared] startDisplayOnQemuThread];
     }
     self->_qemu_main_loop();
     self->_qemu_cleanup();
@@ -254,6 +384,7 @@ static int startQemu(UTMProcess *process, int argc, const char *argv[], const ch
 }
 
 - (BOOL)didLoadDylib:(void *)handle {
+    [[UTMHuskBackend shared] loadSymbolsFromHandle:handle];
     _qemu_init = dlsym(handle, "qemu_init");
     _qemu_main_loop = dlsym(handle, "qemu_main_loop");
     _qemu_cleanup = dlsym(handle, "qemu_cleanup");

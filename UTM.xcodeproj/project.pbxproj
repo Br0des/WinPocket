@@ -280,6 +280,8 @@
 		84C60FB82681A41B00B58C00 /* VMToolbarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84C60FB62681A41B00B58C00 /* VMToolbarView.swift */; platformFilter = ios; };
 		84C60FBA268269D700B58C00 /* VMDisplayViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84C60FB9268269D700B58C00 /* VMDisplayViewController.swift */; };
 		84C60FBB268269D700B58C00 /* VMDisplayViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84C60FB9268269D700B58C00 /* VMDisplayViewController.swift */; };
+		AA5D15C12F00000100A1B2C3 /* VMDisplayHuskViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA5D15C02F00000100A1B2C3 /* VMDisplayHuskViewController.swift */; };
+		AA5D15C22F00000100A1B2C3 /* VMDisplayHuskViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA5D15C02F00000100A1B2C3 /* VMDisplayHuskViewController.swift */; };
 		84CE3DAC2904C14100FF068B /* InAppSettingsKit in Frameworks */ = {isa = PBXBuildFile; platformFilter = ios; productRef = 84CE3DAB2904C14100FF068B /* InAppSettingsKit */; };
 		84CE3DAE2904C17C00FF068B /* IASKAppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84CE3DAD2904C17C00FF068B /* IASKAppSettings.swift */; platformFilter = ios; };
 		84CE3DAF2904C17C00FF068B /* IASKAppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84CE3DAD2904C17C00FF068B /* IASKAppSettings.swift */; platformFilter = ios; };
@@ -1928,6 +1930,7 @@
 		84C584EA268FA6D1000FCABF /* VMConfigAppleSystemView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VMConfigAppleSystemView.swift; sourceTree = "<group>"; };
 		84C60FB62681A41B00B58C00 /* VMToolbarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VMToolbarView.swift; sourceTree = "<group>"; };
 		84C60FB9268269D700B58C00 /* VMDisplayViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VMDisplayViewController.swift; sourceTree = "<group>"; };
+		AA5D15C02F00000100A1B2C3 /* VMDisplayHuskViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VMDisplayHuskViewController.swift; sourceTree = "<group>"; };
 		84CE3DAD2904C17C00FF068B /* IASKAppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IASKAppSettings.swift; sourceTree = "<group>"; };
 		84CE3DB02904C7A100FF068B /* UTMSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UTMSettingsView.swift; sourceTree = "<group>"; };
 		84CF5DD2288DCE6400D01721 /* VMDisplayHostedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VMDisplayHostedView.swift; sourceTree = "<group>"; };
@@ -3150,6 +3153,7 @@
 				CE20FAE62448D2BE0059AE11 /* VMScroll.h */,
 				CE20FAE72448D2BE0059AE11 /* VMScroll.m */,
 				84C60FB9268269D700B58C00 /* VMDisplayViewController.swift */,
+				AA5D15C02F00000100A1B2C3 /* VMDisplayHuskViewController.swift */,
 				CE72B4AB2463579D00716A11 /* VMDisplayViewController.h */,
 				CE72B4AC2463579D00716A11 /* VMDisplayViewController.m */,
 				8401868E288A50B90050AC51 /* VMDisplayViewControllerDelegate.swift */,
@@ -4126,6 +4130,7 @@
 				84CF5DF5288F558400D01721 /* VMToolbarDriveMenuView.swift in Sources */,
 				CE2D957B24AD4F990059923A /* VMSettingsView.swift in Sources */,
 				84C60FBA268269D700B58C00 /* VMDisplayViewController.swift in Sources */,
+				AA5D15C12F00000100A1B2C3 /* VMDisplayHuskViewController.swift in Sources */,
 				CEF0306A26A2AFDF00667B63 /* VMWizardStartView.swift in Sources */,
 				843BF82828441FAF0029D60D /* QEMUConstantGenerated.swift in Sources */,
 				FD2E48FCF9EC5A44E0A35855 /* VMKeyboardAccessoryView.swift in Sources */,
@@ -4515,6 +4520,7 @@
 				12618B76026270B5C1C8CD29 /* UTMSnapshotBackend.swift in Sources */,
 				BCB19D49AC1352354193ACB6 /* UTMSnapshotManifest.swift in Sources */,
 				84C60FBB268269D700B58C00 /* VMDisplayViewController.swift in Sources */,
+				AA5D15C22F00000100A1B2C3 /* VMDisplayHuskViewController.swift in Sources */,
 				8443EFFB28456F3B00B2E6E2 /* UTMQemuConfigurationSharing.swift in Sources */,
 				848D99BD28636AC90055C215 /* UTMConfigurationDrive.swift in Sources */,
 				84018687288A3B5B0050AC51 /* VMSessionState.swift in Sources */,

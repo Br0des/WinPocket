@@ -357,6 +357,10 @@ extension UTMQemuVirtualMachine {
         system.shmemDirectoryURL = await config.shmemDirectoryURL
         system.appSandboxGroupId = await config.appGroupIdentifier
         system.hasDebugLog = hasDebugLog
+        // Only the display listener is gated here: audio is selected by the
+        // argument builder, and a GL display keeps its Metal path while still
+        // using the Husk audio backend.
+        system.usesHuskBackend = await config.canUseHuskDisplay
         try Task.checkCancellation()
 
         if isShortcut {

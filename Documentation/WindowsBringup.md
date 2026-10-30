@@ -16,7 +16,7 @@ The existing StikDebug URL handoff is not the complete executable-memory protoco
 2. Coordinate StikDebug's script and a prepared RX/RW mapping before the debugger detaches. Do not issue an unhandled breakpoint. A debugger flag or accepted URL is not proof that generated code can execute; perform an execution self-test.
 3. Match the preallocated size to the actual VM's `tb-size`, handle allocation and initialization errors, and retain the mapping for QEMU's lifetime. Account for app suspension, failed attach, repeated attempts, and QEMU's one-launch-per-process restriction on iOS.
 4. Keep the existing non-TXM JIT path functional. Test both paths on representative devices, as well as missing debugger, unsupported signing and memory-pressure cases.
-5. Review licensing and attribution before distributing adapted code. Husk labels its allocator GPL-2.0-or-later and documents its own [licensing analysis](https://github.com/Leviidev/Husk/blob/645c22aa92ebcf34c84d9ad0ac6cdd701c667f53/docs/01-licensing.md); WinPocket retains Apache-2.0 app source alongside QEMU components. Do not assume the distribution implications of combining them have been resolved.
+5. Review licensing and attribution before distributing adapted code. Husk labels its allocator GPL-2.0-or-later and documents its own [licensing analysis](https://github.com/Leviidev/Husk/blob/645c22aa92ebcf34c84d9ad0ac6cdd701c667f53/docs/01-licensing.md). WinPocket's application is now distributed under GPL-2.0-or-later, and UTM-derived sources keep their Apache-2.0 headers; see [`LICENSE`](../LICENSE) and [`THIRD_PARTY_NOTICES.md`](../THIRD_PARTY_NOTICES.md).
 
 This is an integration plan, not a claim that Husk's allocator is already wired into WinPocket. Do not copy its Android snapshot workaround into Windows: the stated safety condition depends on Android-specific guest behavior.
 
@@ -101,9 +101,37 @@ cannot simply drop `-spice`. The backend above is what replaces its *display and
 audio*; replacing the rest needs a QMP transport of its own and is not part of
 this step.
 
-What this does **not** establish: that the app calls any of it yet, that the GL
-path works on a device (only that it compiles on CI), or that Windows boots with
-the Husk display. Those remain acceptance checks below.
+### The app side: display, input and audio
+
+With **Settings → Display → Husk backend (experimental)** on, an iOS session uses
+the backend above for its display and audio. The default is off until the path
+has booted a Windows guest on a device; the SPICE route stays the default.
+
+- `UTMQemuSystem` resolves the Husk entry points from the same `dlopen()` handle
+  it already uses for `qemu_init`, so a sysroot without the integration degrades
+  to no-ops rather than a launch-time link failure. The software listener is
+  registered right after `qemu_init()` returns and before `qemu_main_loop()`,
+  which is the only window where the graphics console exists but the guest is
+  not yet running.
+- `VMDisplayHuskViewController` presents the surface through a `CAMetalLayer`
+  whose drawable is the guest's own pixel size, so a frame is a single 1:1 blit
+  and Core Animation does the scaling. Pinch and two-finger pan move the
+  viewport; one-finger drag maps to absolute pointer events. Hardware keys map
+  HID usages to QEMU QKeyCode names, and the software keyboard synthesises press
+  and release from the characters it is given.
+- `HuskAudioEngine` drains the lock-free ring in an `AVAudioSourceNode` render
+  callback. The argument builder swaps `-audiodev spice,id=audio0` for
+  `-audiodev husk,id=audio0` when the toggle is on, so the guest's existing sound
+  device needs no change.
+- On a memory warning, a session with a balloon device asks the guest to shrink
+  to the memory iOS reports as available, less a 512 MiB reserve.
+
+Still open on the app side: presenting a virgl scanout in the app (the GL
+listener is in QEMU but not owned by a view yet, which is why an accelerated
+display keeps the SPICE path), snapshots through `husk_snapshot_*`, and a QMP
+transport so SPICE can eventually be dropped. What this does **not** establish:
+that the GL path works on a device, that the Husk display has booted Windows, or
+that audio is audible on real hardware. Those remain acceptance checks below.
 
 ## Acceptance checks
 

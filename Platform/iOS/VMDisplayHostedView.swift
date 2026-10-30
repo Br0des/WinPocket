@@ -149,7 +149,7 @@ struct VMDisplayHostedView: UIViewControllerRepresentable {
     @EnvironmentObject private var session: VMSessionState
     
     func makeUIViewController(context: Context) -> VMDisplayViewController {
-        let vc: VMDisplayViewController
+        var vc: VMDisplayViewController
         switch device {
         case .display(let display, _):
             let mvc = VMDisplayMetalViewController(display: display, input: session.primaryInput)
@@ -161,6 +161,17 @@ struct VMDisplayHostedView: UIViewControllerRepresentable {
             vc = VMDisplayTerminalViewController(port: serial, style: style)
             vc.delegate = context.coordinator
         }
+        #if os(iOS) && !WITH_REMOTE
+        // Husk renders the same guest the SPICE display is attached to, so the
+        // device entry stays the same and only the presentation changes. A GL
+        // display keeps the Metal controller: its frames are textures, and the
+        // Husk software listener would never see a surface.
+        if session.qemuConfig.canUseHuskDisplay, case .display(_, _) = device {
+            let hvc = VMDisplayHuskViewController(state: $state)
+            hvc.delegate = context.coordinator
+            vc = hvc
+        }
+        #endif
         context.coordinator.vmStateCancellable = session.$vmState.sink { vmState in
             switch vmState {
             case .stopped, .paused:
@@ -175,6 +186,11 @@ struct VMDisplayHostedView: UIViewControllerRepresentable {
     }
     
     func updateUIViewController(_ uiViewController: VMDisplayViewController, context: Context) {
+        #if os(iOS) && !WITH_REMOTE
+        if let vc = uiViewController as? VMDisplayHuskViewController {
+            vc.applyWindowState()
+        }
+        #endif
         if let vc = uiViewController as? VMDisplayMetalViewController {
             vc.vmInput = session.primaryInput
         }

@@ -72,3 +72,4 @@ sysroot*/
 .DS_Store
 CodeSigning.xcconfig
 .husk-jit-research/
+.husk-backend/

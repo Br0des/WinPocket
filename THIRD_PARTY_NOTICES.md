@@ -26,6 +26,15 @@ in `patches/sources` and covered by their own licenses in the built sysroot).
 Each vendored file carries its SPDX identifier and, where the original had no
 header, a provenance notice. These files are compiled into the QEMU library,
 which is itself GPL-2.0-or-later, so vendoring them does not change the
-licensing of the emulator. The application's own distribution terms are in
-[`LICENSE`](LICENSE); UTM-derived application sources keep their Apache-2.0
-headers and notices.
+licensing of the emulator.
+
+WinPocket's own application code is GPL-2.0-or-later; see [`LICENSE`](LICENSE).
+UTM-derived source files keep their Apache-2.0 headers and notices. Apache-2.0
+is compatible with GPLv3, which the "or later" clause of GPL-2.0-or-later lets a
+recipient choose, so the combined application can be distributed under GPLv3.
+
+## UTM
+
+- Source: <https://github.com/utmapp/UTM>
+- License: Apache-2.0 for the application sources; the bundled QEMU, SPICE and
+  other build-time dependencies keep their own licenses.

@@ -3286,6 +3286,32 @@
 			<key>Type</key>
 			<string>PSGroupSpecifier</string>
 			<key>Title</key>
+			<string>Display</string>
+			<key>FooterText</key>
+			<string>Renders the guest through the Husk backend compiled into WinPocket instead of SPICE, and plays its audio directly. Requires a VM restart. Displays without GPU acceleration only; an accelerated display keeps its Metal path.</string>
+			<key>ExcludeTargets</key>
+			<array>
+				<string>iOS-Remote</string>
+			</array>
+		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSToggleSwitchSpecifier</string>
+			<key>Title</key>
+			<string>Husk backend (experimental)</string>
+			<key>Key</key>
+			<string>HuskBackend</string>
+			<key>DefaultValue</key>
+			<false/>
+			<key>ExcludeTargets</key>
+			<array>
+				<string>iOS-Remote</string>
+			</array>
+		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSGroupSpecifier</string>
+			<key>Title</key>
 			<string>About</string>
 		</dict>
 		<dict>

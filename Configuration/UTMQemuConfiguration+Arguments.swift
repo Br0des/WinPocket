@@ -126,6 +126,31 @@ import Virtualization // for getting network interfaces
         return false
     }
 
+    /// Whether this session should attach the Husk backend that is compiled
+    /// into the iOS QEMU library.
+    ///
+    /// Off by default: it replaces the display and audio route a VM has been
+    /// using, and until it has booted a Windows guest on a device the SPICE
+    /// path stays the one that is known to work. The switch lives in the app's
+    /// settings bundle ("Husk backend (experimental)").
+    var isHuskBackendEnabled: Bool {
+        #if os(iOS) && !WITH_REMOTE
+        return UserDefaults.standard.bool(forKey: "HuskBackend")
+        #else
+        return false
+        #endif
+    }
+
+    /// Husk's software listener only ever sees CPU surfaces. A GL-accelerated
+    /// display hands QEMU a texture instead, so those sessions keep rendering
+    /// through SPICE rather than showing a black window.
+    var canUseHuskDisplay: Bool {
+        guard isHuskBackendEnabled, !displays.isEmpty else {
+            return false
+        }
+        return !displays.contains(where: isDisplayGLSupported)
+    }
+
     /// Combined generated and user specified arguments.
     @QEMUArgumentBuilder var allArguments: [QEMUArgument] {
         generatedArguments
@@ -721,7 +746,13 @@ import Virtualization // for getting network interfaces
             f("id=audio1")
         }
         f("-audiodev")
-        "spice"
+        // Husk's backend writes PCM into a ring the app drains itself; SPICE
+        // audio can only exist when the SPICE server owns the route.
+        if isHuskBackendEnabled {
+            f("husk")
+        } else {
+            f("spice")
+        }
         f("id=audio0")
         // screamer has no extra device, pcspk is handled in machineProperties
         for _sound in sound.filter({ !isInternalAudioDevice($0.hardware) }) {

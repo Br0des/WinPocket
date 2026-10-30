@@ -14,11 +14,57 @@
 // limitations under the License.
 //
 
+#import <stdbool.h>
+#import <stdint.h>
 #import "UTMProcess.h"
 #import "UTMQemuSystemBackends.h"
 @import QEMUKitInternal;
 
 NS_ASSUME_NONNULL_BEGIN
+
+/// The guest's current framebuffer, mirrored from HuskFrameInfo in
+/// husk-display.h. Kept in step by hand because an Xcode target cannot include
+/// QEMU's headers; the field order and widths are the ABI.
+typedef struct _UTMHuskFrame {
+    const void * _Nullable pixels;
+    int32_t width;
+    int32_t height;
+    int32_t stride;
+    uint32_t bpp;
+    uint64_t generation;
+    uint64_t sequence;
+} UTMHuskFrame;
+
+/// The app's view of the Husk backend inside the QEMU library.
+///
+/// QEMU is loaded with dlopen() rather than linked, so every entry point has to
+/// be resolved from the handle the process loader was given. Symbol names that
+/// are not exported by system/qemu.symbols resolve to NULL here and every call
+/// becomes a no-op, which is how a build without the Husk integration degrades
+/// instead of failing to launch.
+@interface UTMHuskBackend : NSObject
+
+@property (class, nonatomic, readonly) UTMHuskBackend *shared;
+@property (nonatomic, readonly) BOOL isAvailable;
+
+- (void)loadSymbolsFromHandle:(void *)handle;
+
+/// Register the software DisplayChangeListener. QEMU thread only, after
+/// qemu_init() and before qemu_main_loop().
+- (void)startDisplayOnQemuThread;
+
+- (BOOL)lockFrame:(UTMHuskFrame *)out;
+- (void)unlockFrame;
+- (uint64_t)frameSequence;
+- (void)guestSizeWidth:(int32_t *)width height:(int32_t *)height;
+- (void)sendPointerX:(int32_t)x y:(int32_t)y down:(BOOL)down;
+- (BOOL)sendKey:(NSString *)qcode down:(BOOL)down;
+- (void)requestUpdate;
+- (NSInteger)pullAudio:(int16_t *)dst frames:(NSInteger)frames;
+- (BOOL)audioActive;
+- (void)balloonToBytes:(int64_t)bytes;
+
+@end
 
 @interface UTMQemuSystem : UTMProcess <QEMULauncher>
 
@@ -32,6 +78,9 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, weak) id<QEMULauncherDelegate> launcherDelegate;
 @property (nonatomic, nullable) QEMULogging *logging;
 @property (nonatomic) BOOL hasDebugLog;
+/// Register the Husk display listener once QEMU is initialised. Set before the
+/// machine starts; harmless when the QEMU library was built without it.
+@property (nonatomic) BOOL usesHuskBackend;
 
 - (instancetype)init NS_UNAVAILABLE;
 - (instancetype)initWithArguments:(NSArray<NSString *> *)arguments NS_UNAVAILABLE;

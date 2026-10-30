@@ -8,6 +8,14 @@
 			<key>Type</key>
 			<string>PSGroupSpecifier</string>
 			<key>FooterText</key>
+			<string>## WinPocket
+
+WinPocket is distributed under GPL-2.0-or-later. UTM-derived source files keep their Apache-2.0 notices, and Husk (display, audio, balloon, snapshot and JIT support) is GPL-2.0-or-later. QEMU and the other bundled components keep their own licenses, listed below. See THIRD_PARTY_NOTICES.md in the source repository for provenance.</string>
+		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSGroupSpecifier</string>
+			<key>FooterText</key>
 			<string>## LGPL v2.1
 
 The following are distributed under LGPL v2.1

@@ -85,6 +85,11 @@ import SwiftUI
 
     private var backgroundTask: UIBackgroundTaskIdentifier?
 
+    #if os(iOS) && !WITH_REMOTE
+    /// Drains the Husk audio ring for as long as the machine is running.
+    private var huskAudio: HuskAudioEngine?
+    #endif
+
     init(for vm: any UTMSpiceVirtualMachine) {
         self.vm = vm
         super.init()
@@ -151,6 +156,19 @@ extension VMSessionState: UTMVirtualMachineDelegate {
     nonisolated func virtualMachine(_ vm: any UTMVirtualMachine, didTransitionToState state: UTMVirtualMachineState) {
         Task { @MainActor in
             vmState = state
+            #if os(iOS) && !WITH_REMOTE
+            // The audio ring exists in the QEMU library, which is only loaded
+            // once the machine starts -- starting before that would find no
+            // symbols and never retry.
+            if state == .started, qemuConfig.isHuskBackendEnabled, huskAudio == nil {
+                let engine = HuskAudioEngine()
+                engine.start()
+                huskAudio = engine
+            } else if state == .stopped {
+                huskAudio?.stop()
+                huskAudio = nil
+            }
+            #endif
             if state == .stopped {
                 #if WITH_USB
                 clearDevices()
@@ -469,6 +487,10 @@ extension VMSessionState {
     }
     
     func stop() {
+        #if os(iOS) && !WITH_REMOTE
+        huskAudio?.stop()
+        huskAudio = nil
+        #endif
         let audioSession = AVAudioSession.sharedInstance()
         do {
             try audioSession.setActive(false)
@@ -533,6 +555,18 @@ extension VMSessionState {
     #endif
     
     func didReceiveMemoryWarning() {
+        #if os(iOS) && !WITH_REMOTE
+        // A balloon turns the process's fixed jetsam reservation into a pool: the
+        // guest hands pages back while the host is short, and gets them again
+        // afterwards. Only worth sending to a machine that has the device.
+        if qemuConfig.isHuskBackendEnabled, qemuConfig.qemu.hasBalloonDevice {
+            let available = Int(os_proc_available_memory())
+            let reserve = 512 * 1024 * 1024
+            if available > reserve {
+                UTMHuskBackend.shared.balloonToBytes(Int64(available - reserve))
+            }
+        }
+        #endif
         let shouldAutosave = UserDefaults.standard.bool(forKey: "AutosaveLowMemory")
         
         if shouldAutosave {

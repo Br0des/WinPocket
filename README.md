@@ -28,4 +28,4 @@ Free Apple developer signing expires after seven days and must be refreshed. A W
 
 ## Licenses
 
-WinPocket is an independent community project based on open-source emulator components. It retains UTM's Apache 2.0 license and source notices. QEMU and other included components retain their respective licenses; see [`LICENSE`](LICENSE) and the upstream [license notes](https://github.com/utmapp/UTM#license). WinPocket is not affiliated with Microsoft or the UTM project. The repository does not bundle compiled emulator binaries, Windows, or firmware images.
+WinPocket is an independent community project based on open-source emulator components. The application is licensed under GPL-2.0-or-later (see [`LICENSE`](LICENSE)); UTM-derived source files keep their Apache-2.0 headers and notices, and QEMU, Husk and other included components keep theirs — see [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md). WinPocket is not affiliated with Microsoft or the UTM project. The repository does not bundle compiled emulator binaries, Windows, or firmware images.
