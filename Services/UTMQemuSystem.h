@@ -53,7 +53,10 @@ typedef struct _UTMHuskFrame {
 /// qemu_init() and before qemu_main_loop().
 - (void)startDisplayOnQemuThread;
 
-- (BOOL)lockFrame:(UTMHuskFrame *)out;
+// The explicit Swift names keep the frame-lock pair readable: without them the
+// importer prunes the axis name that matches the argument's type and the pair
+// becomes lock(_:)/unlockFrame().
+- (BOOL)lockFrame:(UTMHuskFrame *)out NS_SWIFT_NAME(lockFrame(_:));
 - (void)unlockFrame;
 - (uint64_t)frameSequence;
 - (void)guestSizeWidth:(int32_t *)width height:(int32_t *)height;
@@ -62,7 +65,7 @@ typedef struct _UTMHuskFrame {
 - (void)requestUpdate;
 - (NSInteger)pullAudio:(int16_t *)dst frames:(NSInteger)frames;
 - (BOOL)audioActive;
-- (void)balloonToBytes:(int64_t)bytes;
+- (void)balloonToBytes:(int64_t)bytes NS_SWIFT_NAME(balloonToBytes(_:));
 
 @end
 
