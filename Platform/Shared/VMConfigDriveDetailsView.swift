@@ -70,6 +70,11 @@ struct VMConfigDriveDetailsView: View {
             }
             Toggle("Read Only?", isOn: $config.isReadOnly)
                 .disabled(config.imageType != .none && config.imageType != .disk)
+            #if os(iOS) && !WITH_REMOTE
+            if config.imageType == .disk && !config.isReadOnly && !config.isExternal {
+                Toggle("Husk Snapshot Disk", isOn: $config.isSnapshotTarget)
+            }
+            #endif
             VMConfigConstantPicker("Image Type", selection: $config.imageType)
                 .onChange(of: config.imageType) { imageType in
                     if imageType != .none && config.imageType != .disk {

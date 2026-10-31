@@ -129,16 +129,21 @@ import Virtualization // for getting network interfaces
     /// Whether this session should attach the Husk backend that is compiled
     /// into the iOS QEMU library.
     ///
-    /// Off by default: it replaces the display and audio route a VM has been
-    /// using, and until it has booted a Windows guest on a device the SPICE
-    /// path stays the one that is known to work. The switch lives in the app's
-    /// settings bundle ("Husk backend (experimental)").
+    /// On by default: WinPocket renders and plays guests through Husk instead of
+    /// SPICE. The switch lives in the app's settings bundle ("Husk backend"),
+    /// and turning it off returns a VM to the SPICE path on its next start.
     var isHuskBackendEnabled: Bool {
         #if os(iOS) && !WITH_REMOTE
         return UserDefaults.standard.bool(forKey: "HuskBackend")
         #else
         return false
         #endif
+    }
+
+    /// The one disk that holds the Husk snapshot: writable, not removable, not a
+    /// CD, and only when the Husk backend is running.
+    func isHuskSnapshotTarget(_ drive: UTMQemuConfigurationDrive) -> Bool {
+        isHuskBackendEnabled && drive.isSnapshotTarget && !drive.isReadOnly && !drive.isExternal && drive.imageType == .disk
     }
 
     /// Husk's software listener only ever sees CPU surfaces. A GL-accelerated
@@ -972,6 +977,11 @@ import Virtualization // for getting network interfaces
             "media=disk"
         }
         "id=drive\(drive.id)"
+        if isHuskSnapshotTarget(drive) {
+            // Named so husk-snapshot.c can address this node when saving and
+            // restoring the whole machine.
+            "node-name=huskvmstate"
+        }
         if let imageURL = drive.imageURL {
             "file.filename="
             imageURL

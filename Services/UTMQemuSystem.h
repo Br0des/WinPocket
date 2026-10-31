@@ -53,6 +53,18 @@ typedef struct _UTMHuskFrame {
 /// qemu_init() and before qemu_main_loop().
 - (void)startDisplayOnQemuThread;
 
+/// Restore the saved machine, if one exists. Call from the QEMU thread straight
+/// after qemu_init(), before qemu_main_loop(). Returns NO when there is nothing
+/// to restore, which is the normal first-run case.
+- (BOOL)loadSnapshotAtStartup;
+
+/// Whether the loaded QEMU library exports the snapshot entry points.
+@property (nonatomic, readonly) BOOL canSaveSnapshot;
+
+/// Save the running machine to the userdata disk. Asynchronous; `completion` is
+/// called on the main queue with the result. Snapshot writes can take a while.
+- (void)saveSnapshotWithCompletion:(void (^)(BOOL ok))completion NS_SWIFT_NAME(saveSnapshot(completion:));
+
 // The explicit Swift names keep the frame-lock pair readable: without them the
 // importer prunes the axis name that matches the argument's type and the pair
 // becomes lock(_:)/unlockFrame().

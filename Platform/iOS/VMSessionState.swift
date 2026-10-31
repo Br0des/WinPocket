@@ -46,6 +46,7 @@ import SwiftUI
     @Published var vmState: UTMVirtualMachineState = .stopped
     
     @Published var nonfatalError: String?
+    @Published var isSavingHuskSnapshot: Bool = false
 
     @Published var fatalError: String?
 
@@ -538,6 +539,34 @@ extension VMSessionState {
     func reset() {
         vm.requestVmReset()
     }
+
+    #if os(iOS) && !WITH_REMOTE
+    /// Whether the Husk save action can be offered for this machine: the Husk
+    /// backend is on, a disk is marked as the snapshot disk, and the loaded QEMU
+    /// library exports the save entry point.
+    var canSaveHuskSnapshot: Bool {
+        qemuConfig.isHuskBackendEnabled
+            && qemuConfig.drives.contains(where: { qemuConfig.isHuskSnapshotTarget($0) })
+            && UTMHuskBackend.shared.canSaveSnapshot
+    }
+
+    /// Saves the running machine to the snapshot disk. Failures surface through
+    /// `nonfatalError` so the user sees them; `isSavingHuskSnapshot` disables the
+    /// control while the write is in flight.
+    func saveHuskSnapshot() {
+        guard canSaveHuskSnapshot, !isSavingHuskSnapshot, vmState == .started || vmState == .paused else {
+            return
+        }
+        isSavingHuskSnapshot = true
+        UTMHuskBackend.shared.saveSnapshot(completion: { [weak self] ok in
+            guard let self else { return }
+            self.isSavingHuskSnapshot = false
+            if !ok {
+                self.nonfatalError = String(localized: "Could not save the snapshot to the snapshot disk.")
+            }
+        })
+    }
+    #endif
     
     #if !WITH_REMOTE
     func sendKeys(keys: [QEMUKeyCode]) {

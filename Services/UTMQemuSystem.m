@@ -42,6 +42,20 @@ static void     (*huskRequestUpdate)(void);
 static int      (*huskAudioPull)(int16_t *dst, int frames);
 static bool     (*huskAudioActive)(void);
 static void     (*huskBalloonSetBytes)(int64_t bytes);
+static void     (*huskSnapshotSave)(void (*cb)(bool ok, const char *what));
+static bool     (*huskSnapshotLoadAtStartup)(void);
+static void     (^huskSnapshotCompletion)(BOOL ok);
+
+static void huskSnapshotDone(bool ok, const char *what) {
+    void (^completion)(BOOL) = huskSnapshotCompletion;
+    huskSnapshotCompletion = nil;
+    UTMLog(@"[husk] snapshot %s %s", what ? what : "?", ok ? "succeeded" : "failed");
+    if (completion) {
+        dispatch_async(dispatch_get_main_queue(), ^{
+            completion(ok);
+        });
+    }
+}
 
 @implementation UTMHuskBackend
 
@@ -73,6 +87,8 @@ static void     (*huskBalloonSetBytes)(int64_t bytes);
     huskAudioPull = dlsym(handle, "husk_audio_pull");
     huskAudioActive = dlsym(handle, "husk_audio_active");
     huskBalloonSetBytes = dlsym(handle, "husk_balloon_set_bytes");
+    huskSnapshotSave = dlsym(handle, "husk_snapshot_save");
+    huskSnapshotLoadAtStartup = dlsym(handle, "husk_snapshot_load_at_startup");
     if (!huskDisplayInit) {
         UTMLog(@"[husk] QEMU library has no Husk backend symbols; leaving it disabled");
     } else {
@@ -86,6 +102,25 @@ static void     (*huskBalloonSetBytes)(int64_t bytes);
     }
     UTMLog(@"[husk] registering the display listener on console 0");
     huskDisplayInit();
+}
+
+- (BOOL)loadSnapshotAtStartup {
+    return huskSnapshotLoadAtStartup ? huskSnapshotLoadAtStartup() : NO;
+}
+
+- (BOOL)canSaveSnapshot {
+    return huskSnapshotSave != NULL;
+}
+
+- (void)saveSnapshotWithCompletion:(void (^)(BOOL ok))completion {
+    if (!huskSnapshotSave) {
+        if (completion) {
+            completion(NO);
+        }
+        return;
+    }
+    huskSnapshotCompletion = [completion copy];
+    huskSnapshotSave(huskSnapshotDone);
 }
 
 - (BOOL)lockFrame:(UTMHuskFrame *)out {
@@ -160,6 +195,11 @@ static int startQemu(UTMProcess *process, int argc, const char *argv[], const ch
     int ret = self->_qemu_init(argc, argv, envp);
     if (ret != 0) {
         return ret;
+    }
+    // Restore a saved machine before the guest gets to run. The load stops the
+    // vCPUs itself and resumes them when done, so it must come right here.
+    if (self.usesHuskBackend) {
+        [[UTMHuskBackend shared] loadSnapshotAtStartup];
     }
     // qemu_init() returns with the BQL held and the graphics console already
     // created, so this is the one window where a DisplayChangeListener can

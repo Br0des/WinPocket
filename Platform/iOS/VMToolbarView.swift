@@ -132,6 +132,17 @@ struct VMToolbarView: View {
                         .animationUniqueID("drive", in: namespace)
                     VMToolbarDisplayMenuView(state: $state)
                         .animationUniqueID("display", in: namespace)
+                    #if os(iOS) && !WITH_REMOTE
+                    if session.canSaveHuskSnapshot {
+                        Button {
+                            session.saveHuskSnapshot()
+                        } label: {
+                            Label("Save Snapshot", systemImage: "square.and.arrow.down")
+                        }
+                        .disabled(session.isSavingHuskSnapshot)
+                        .animationUniqueID("huskSave", in: namespace)
+                    }
+                    #endif
                     Button {
                         // ignore if we are showing shortcuts
                         guard !isKeyShortcutsShown else {

@@ -46,6 +46,10 @@ struct UTMQemuConfigurationDrive: UTMConfigurationDrive {
     
     /// Interface version for backwards compatibility
     var interfaceVersion: Int = Self.latestInterfaceVersion
+
+    /// If true, this disk holds the Husk whole-machine snapshot. Only honored
+    /// with the Husk backend, and only for a writable, non-removable disk.
+    var isSnapshotTarget: Bool = false
     
     /// If true, the created image will be raw format and not QCOW2. Not saved.
     var isRawImage: Bool = false
@@ -60,6 +64,7 @@ struct UTMQemuConfigurationDrive: UTMConfigurationDrive {
         case interfaceVersion = "InterfaceVersion"
         case identifier = "Identifier"
         case isReadOnly = "ReadOnly"
+        case isSnapshotTarget = "SnapshotTarget"
     }
     
     init() {
@@ -78,6 +83,7 @@ struct UTMQemuConfigurationDrive: UTMConfigurationDrive {
             isExternal = true
         }
         isReadOnly = try values.decodeIfPresent(Bool.self, forKey: .isReadOnly) ?? isExternal
+        isSnapshotTarget = try values.decodeIfPresent(Bool.self, forKey: .isSnapshotTarget) ?? false
         imageType = try values.decode(QEMUDriveImageType.self, forKey: .imageType)
         interface = try values.decode(QEMUDriveInterface.self, forKey: .interface)
         interfaceVersion = try values.decodeIfPresent(Int.self, forKey: .interfaceVersion) ?? 0
@@ -90,6 +96,9 @@ struct UTMQemuConfigurationDrive: UTMConfigurationDrive {
             try container.encodeIfPresent(imageURL?.lastPathComponent, forKey: .imageName)
         }
         try container.encode(isReadOnly, forKey: .isReadOnly)
+        if isSnapshotTarget {
+            try container.encode(isSnapshotTarget, forKey: .isSnapshotTarget)
+        }
         try container.encode(imageType, forKey: .imageType)
         if imageType == .cd || imageType == .disk {
             try container.encode(interface, forKey: .interface)
@@ -110,6 +119,7 @@ struct UTMQemuConfigurationDrive: UTMConfigurationDrive {
         interface.hash(into: &hasher)
         interfaceVersion.hash(into: &hasher)
         isRawImage.hash(into: &hasher)
+        isSnapshotTarget.hash(into: &hasher)
     }
     
     func clone() -> UTMQemuConfigurationDrive {

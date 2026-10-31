@@ -3302,7 +3302,7 @@
 			<key>Key</key>
 			<string>HuskBackend</string>
 			<key>DefaultValue</key>
-			<false/>
+			<true/>
 			<key>ExcludeTargets</key>
 			<array>
 				<string>iOS-Remote</string>
